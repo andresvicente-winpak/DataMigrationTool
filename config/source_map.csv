@@ -1,0 +1,10 @@
+MCO_SHEET,SOURCE_FILE,JOIN_KEY
+Item Master,SQL:SELECT * FROM V_MITMAS_WPP,MMITNO
+Customers,SQL:SELECT * FROM OCUSMA WHERE OKSTAT<>'90',OKCUNO
+Customer Addresses,raw_data/OCUSAD.xlsx,OPCUNO
+Item Warehouse,SQL:SELECT * FROM V_MITBAL_WPP,MBITNO
+Item Facility,SQL:SELECT * FROM V_MITFAC_WPP,M9ITNO
+Suppliers,raw_data/CIDMAS.xlsx,IDSUNO
+Product Header,raw_data/MPDHED.xlsx,PHPRNO
+Product Materials,raw_data/MPDMAT.xlsx,PMPRNO
+Product Operations,raw_data/MPDOPE.xlsx,POPRNO

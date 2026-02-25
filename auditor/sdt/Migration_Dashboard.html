@@ -1,0 +1,93 @@
+
+    <html>
+    <head>
+        <title>SDT Migration Dashboard</title>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f0f2f5; }
+            h1 { color: #1a1a1a; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+            .summary { display: flex; gap: 20px; margin-bottom: 20px; }
+            .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 150px; }
+            .card h3 { margin: 0; color: #666; font-size: 0.9em; }
+            .card p { margin: 5px 0 0; font-size: 1.5em; font-weight: bold; color: #333; }
+            
+            table { border-collapse: collapse; width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+            th { background-color: #007bff; color: white; font-weight: 600; }
+            tr:hover { background-color: #f8f9fa; }
+            
+            .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 500; }
+            .badge-ok { background: #d4edda; color: #155724; }
+            .badge-fail { background: #f8d7da; color: #721c24; }
+            .badge-warn { background: #fff3cd; color: #856404; }
+            .badge-neutral { background: #e2e3e5; color: #383d41; }
+            
+            .error-text { color: #dc3545; font-size: 0.9em; font-family: monospace; }
+        </style>
+    </head>
+    <body>
+        <h1>Migration Control Tower</h1>
+        
+        <div class="summary">
+            <div class="card">
+                <h3>Files Processed</h3>
+                <p>4</p>
+            </div>
+            <div class="card">
+                <h3>Total Loaded</h3>
+                <p>823</p>
+            </div>
+            <div class="card">
+                <h3>Total Errors</h3>
+                <p style="color: #dc3545;">383</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Target</th>
+                    <th>Status</th>
+                    <th>OK</th>
+                    <th>NOK</th>
+                    <th>Primary Issue</th>
+                </tr>
+            </thead>
+            <tbody>
+    
+        <tr>
+            <td style="font-weight: 500;">MMS015MI_API_decimal places.xlsx</td>
+            <td><span class="badge badge-neutral">600</span></td>
+            <td><span class="badge badge-fail">ERRORS</span></td>
+            <td style="color: #155724;">297</td>
+            <td style="color: #721c24;">143</td>
+            <td class="error-text">[API_MMS015MI_Add] NOK-Item number CR30103 already exists</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 500;">MMS015MI_API_missing KPD.xlsx</td>
+            <td><span class="badge badge-neutral">100</span></td>
+            <td><span class="badge badge-fail">ERRORS</span></td>
+            <td style="color: #155724;">159</td>
+            <td style="color: #721c24;">4</td>
+            <td class="error-text">[API_MMS015MI_Add] NOK-Item number KPD011W-003A already exists</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 500;">MMS054ItemConnectPkg.xlsx</td>
+            <td><span class="badge badge-neutral">600</span></td>
+            <td><span class="badge badge-fail">ERRORS</span></td>
+            <td style="color: #155724;">79</td>
+            <td style="color: #721c24;">223</td>
+            <td class="error-text">[API_MMS053MI_AddItemConnPkg] NOK-The entered value is too large</td>
+        </tr>
+        
+        <tr>
+            <td style="font-weight: 500;">warehouses - update planning method.xlsx</td>
+            <td><span class="badge badge-neutral">600</span></td>
+            <td><span class="badge badge-fail">ERRORS</span></td>
+            <td style="color: #155724;">288</td>
+            <td style="color: #721c24;">13</td>
+            <td class="error-text">[API_MMS200MI_AddItmBasic] NOK-Item number IC40908010 already exists</td>
+        </tr>
+        </tbody></table></body></html>

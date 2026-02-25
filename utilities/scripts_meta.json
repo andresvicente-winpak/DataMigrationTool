@@ -1,0 +1,5 @@
+{
+    "customer/extractFACIDIVICUNOfromOOHEAD.py": {
+        "description": "From an OOHEAD extract, it extracts all the combinations of DIVI, CUNO and FACI needed to populate in CRS610. "
+    }
+}

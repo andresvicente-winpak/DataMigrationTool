@@ -6,9 +6,9 @@ Customer - CDF,SQL:SELECT * FROM OCUSMA WHERE OKSTAT='20',OKCUNO
 Customer - Statistical,raw_data/STAT_BC.xlsx,OKCUNO
 Customer - TextBlock,"SQL:select *
 from V_TEXTBLOCK",CUNO
-Suppliers,"SQL:select *
-from cidmas
---where IDSUNO in ('160382','164137','167043')",IDSUNO
+Suppliers,"SQL:SELECT *
+FROM CIDMAS
+WHERE IDSUNO in ('501023','500970','501013','160118','160231','395453','395056')",IDSUNO
 Product Options,"SQL: SELECT DISTINCT OM.*,PFOPTN OOPT
 FROM MPDHED H
 JOIN V_MITMAS_WPP M  ON H.PHPRNO = M.MMITNO

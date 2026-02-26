@@ -131,8 +131,10 @@ class TransformEngine:
                         lookup_dict = self._load_map_file(r_val)
                         if lookup_dict:
                             normalized_source = source_series.astype(str).str.strip().str.upper()
-                            df_target[target_col] = normalized_source.map(lookup_dict)
-
+                            mapped_series = normalized_source.map(lookup_dict)
+                            # Keep original source value when a key is missing in the translation map.
+                            df_target[target_col] = mapped_series.where(mapped_series.notna(), source_series)
+                            
                 elif rule_type == 'PYTHON':
                     col_name = None
                     if r_src in src_map: col_name = src_map[r_src]

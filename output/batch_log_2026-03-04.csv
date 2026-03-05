@@ -1,0 +1,5 @@
+Job,Status,File
+test_supplier,SUCCESS,test_CRS610MI.xlsx
+test_customer,SUCCESS,nan_CRS620MI.xlsx
+test_customer,SUCCESS,nan_CRS620MI.xlsx
+test_customer,SUCCESS,nan_CRS620MI.xlsx

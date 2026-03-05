@@ -128,6 +128,8 @@ class TransformEngine:
                         if match: source_series = df_source[src_map[match]]
                     
                     if source_series is not None and r_val:
+                        # Default MAP behavior: keep original source value unless translation exists.
+                        df_target[target_col] = source_series
                         lookup_dict = self._load_map_file(r_val)
                         if lookup_dict:
                             normalized_source = source_series.astype(str).str.strip().str.upper()

@@ -3,8 +3,11 @@ CUSTOMER,Customers,OKCUNO
 CUSTOMER,Customer Addresses,OPCUNO
 ITEM,Item Master,MMITNO
 ITEM,Item Warehouse,MBITNO
-SUPPLIER,Suppliers,IDSUNO
 ITEM,Item Facility,M9ITNO
+ITEM SUPPLIER,Item Supplier,IFITNO
+SUPPLIER,Suppliers,IDSUNO
+SUPPLIER,Supplier Addresses,SASUNO
+SUPPLIER,Supplier - Reference,IRSUNO
 PRODUCT HEADER,Product Header,
 PRODUCT HEADER FEATURE,Product Header Features,
 PRODUCT MATERIALS,Product Materials,

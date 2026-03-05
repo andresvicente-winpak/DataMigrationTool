@@ -239,6 +239,29 @@ def test_19_map_lookup_rule():
     res = eng.process(df_s)
     assert res.iloc[0]['RES'] == 'NEW'
 
+def test_19b_map_lookup_fallback_to_source_when_missing_key():
+    map_path = f"{CONF_DIR}/map_lookup_fallback.csv"
+    pd.DataFrame({'KEY': ['OLD'], 'VAL': ['NEW']}).to_csv(map_path, index=False)
+    rule_val = f"{map_path}|KEY|VAL"
+    df_s = pd.DataFrame({'SRC': ['OLD', 'UNMAPPED']})
+    df_r = pd.DataFrame([{
+        'TARGET_FIELD': 'RES', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'SRC', 'RULE_VALUE': rule_val
+    }])
+    eng = TransformEngine(df_r, {})
+    res = eng.process(df_s)
+    assert list(res['RES']) == ['NEW', 'UNMAPPED']
+
+def test_19c_map_lookup_fallback_to_source_when_map_unavailable():
+    missing_path = f"{CONF_DIR}/does_not_exist.csv"
+    rule_val = f"{missing_path}|KEY|VAL"
+    df_s = pd.DataFrame({'SRC': ['OLD', 'UNMAPPED']})
+    df_r = pd.DataFrame([{
+        'TARGET_FIELD': 'RES', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'SRC', 'RULE_VALUE': rule_val
+    }])
+    eng = TransformEngine(df_r, {})
+    res = eng.process(df_s)
+    assert list(res['RES']) == ['OLD', 'UNMAPPED']
+
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"
     df = pd.DataFrame([

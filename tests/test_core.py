@@ -262,6 +262,15 @@ def test_19c_map_lookup_fallback_to_source_when_map_unavailable():
     res = eng.process(df_s)
     assert list(res['RES']) == ['OLD', 'UNMAPPED']
 
+def test_19d_map_lookup_fallback_to_source_when_rule_value_blank():
+    df_s = pd.DataFrame({'SRC': ['OLD', 'UNMAPPED']})
+    df_r = pd.DataFrame([{
+        'TARGET_FIELD': 'RES', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'SRC', 'RULE_VALUE': ''
+    }])
+    eng = TransformEngine(df_r, {})
+    res = eng.process(df_s)
+    assert list(res['RES']) == ['OLD', 'UNMAPPED']
+
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"
     df = pd.DataFrame([

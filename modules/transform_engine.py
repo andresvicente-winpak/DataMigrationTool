@@ -237,8 +237,11 @@ class TransformEngine:
                             if lookup_dict:
                                 normalized_source = source_series.astype(str).str.strip().str.upper()
                                 mapped_series = normalized_source.map(lookup_dict)
-                                # Keep original source value when a key is missing in the translation map.
-                                df_target[target_col] = mapped_series.where(mapped_series.notna(), source_series)
+
+                                # Treat both missing keys (NaN) and blank translations as "no translation"
+                                # so we preserve the original source value for any MAP field.
+                                has_translation = mapped_series.fillna('').astype(str).str.strip().ne('')
+                                df_target[target_col] = mapped_series.where(has_translation, source_series)
                             
                         if len(source_fields) != len(key_cols):
                             print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: SOURCE_FIELD count ({len(source_fields)}) must match map key count ({len(key_cols)}). SOURCE_FIELD={source_fields}, MAP_KEYS={key_cols}.{Style.RESET_ALL}")

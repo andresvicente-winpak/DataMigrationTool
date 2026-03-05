@@ -98,6 +98,22 @@ def test_05b_transform_engine_const_blank_quotes():
     assert res.iloc[0]['EMPTY1'] == ''
     assert res.iloc[0]['EMPTY2'] == ''
 
+def test_05c_sdt_writer_matches_target_field_aliases():
+    df_source = pd.DataFrame({'SRC': ['120200006']})
+    df_rules = pd.DataFrame([{
+        'TARGET_FIELD': 'SUNO', 'RULE_TYPE': 'DIRECT', 'SOURCE_FIELD': 'SRC', 'RULE_VALUE': ''
+    }])
+
+    writer = SDTWriter(output_dir=OUT_DIR)
+    df_out = writer._transform_data(df_source, df_rules, ['SUNO#'], 'Dummy')
+
+    assert 'SUNO#' in df_out.columns
+    assert df_out.iloc[0]['SUNO#'] == '120200006'
+
+
+def test_05d_sdt_writer_escapes_formula_like_text():
+    assert SDTWriter._norm_cell('=BADFORMULA(') == "'=BADFORMULA("
+
 def test_06_python_hooks():
     code_snippet = "if source == 1: return 'HOOKED'\nreturn 'NOPE'"
     df_s = pd.DataFrame({'A': [1]})
@@ -270,6 +286,18 @@ def test_19d_map_lookup_fallback_to_source_when_rule_value_blank():
     eng = TransformEngine(df_r, {})
     res = eng.process(df_s)
     assert list(res['RES']) == ['OLD', 'UNMAPPED']
+
+def test_19e_map_lookup_fallback_to_source_when_translation_value_blank():
+    map_path = f"{CONF_DIR}/map_lookup_blank_val.csv"
+    pd.DataFrame({'KEY': ['OLD', 'HASVAL'], 'VAL': ['', 'NEWVAL']}).to_csv(map_path, index=False)
+    rule_val = f"{map_path}|KEY|VAL"
+    df_s = pd.DataFrame({'SRC': ['OLD', 'HASVAL', 'UNMAPPED']})
+    df_r = pd.DataFrame([{
+        'TARGET_FIELD': 'RES', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'SRC', 'RULE_VALUE': rule_val
+    }])
+    eng = TransformEngine(df_r, {})
+    res = eng.process(df_s)
+    assert list(res['RES']) == ['OLD', 'NEWVAL', 'UNMAPPED']
 
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"

@@ -127,13 +127,17 @@ class TransformEngine:
                         match = next((c for c in src_map if c.endswith(r_src) and len(c)==6), None)
                         if match: source_series = df_source[src_map[match]]
                     
-                    if source_series is not None and r_val:
-                        lookup_dict = self._load_map_file(r_val)
-                        if lookup_dict:
-                            normalized_source = source_series.astype(str).str.strip().str.upper()
-                            mapped_series = normalized_source.map(lookup_dict)
-                            # Keep original source value when a key is missing in the translation map.
-                            df_target[target_col] = mapped_series.where(mapped_series.notna(), source_series)
+                    if source_series is not None:
+                        # Default MAP behavior: keep original source value unless translation exists.
+                        df_target[target_col] = source_series
+
+                        if r_val:
+                            lookup_dict = self._load_map_file(r_val)
+                            if lookup_dict:
+                                normalized_source = source_series.astype(str).str.strip().str.upper()
+                                mapped_series = normalized_source.map(lookup_dict)
+                                # Keep original source value when a key is missing in the translation map.
+                                df_target[target_col] = mapped_series.where(mapped_series.notna(), source_series)
                             
                 elif rule_type == 'PYTHON':
                     col_name = None

@@ -225,21 +225,6 @@ class TransformEngine:
                             print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
                         df_target[target_col] = mapped_series
                     else:
-                        match = next((c for c in src_map if c.endswith(r_src) and len(c)==6), None)
-                        if match: source_series = df_source[src_map[match]]
-                    
-                    if source_series is not None:
-                        # Default MAP behavior: keep original source value unless translation exists.
-                        df_target[target_col] = source_series
-
-                        if r_val:
-                            lookup_dict = self._load_map_file(r_val)
-                            if lookup_dict:
-                                normalized_source = source_series.astype(str).str.strip().str.upper()
-                                mapped_series = normalized_source.map(lookup_dict)
-                                # Keep original source value when a key is missing in the translation map.
-                                df_target[target_col] = mapped_series.where(mapped_series.notna(), source_series)
-                            
                         if len(source_fields) != len(key_cols):
                             print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: SOURCE_FIELD count ({len(source_fields)}) must match map key count ({len(key_cols)}). SOURCE_FIELD={source_fields}, MAP_KEYS={key_cols}.{Style.RESET_ALL}")
                             continue

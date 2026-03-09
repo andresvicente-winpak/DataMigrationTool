@@ -68,6 +68,24 @@ class TransformEngine:
             return src_map[match]
         return None
 
+    def _build_map_fallback_series(self, df_source, source_fields, key_cols, src_map, target_col):
+        """
+        Build a fallback series for MAP rules.
+        If a lookup key is not found (or map loading fails), keep original source value.
+        For composite-key maps, fallback uses the first source field.
+        """
+        if not source_fields:
+            source_fields = [k.strip().upper() for k in key_cols]
+
+        resolved_cols = [self._resolve_source_col(f, src_map) for f in source_fields]
+        if any(c is None for c in resolved_cols):
+            missing = [source_fields[i] for i, c in enumerate(resolved_cols) if c is None]
+            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Missing source column(s) for fallback: {missing}. Available: {list(src_map.keys())}{Style.RESET_ALL}")
+            return None, resolved_cols
+
+        fallback_col = resolved_cols[0]
+        return df_source[fallback_col], resolved_cols
+
     def _load_map_file(self, config_str):
         if config_str in self._map_cache:
             return self._map_cache[config_str]
@@ -191,25 +209,46 @@ class TransformEngine:
                     df_target[target_col] = self._normalize_const_value(r_val)
 
                 elif rule_type == 'MAP':
+                    source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
+                    fallback_series, resolved_cols = self._build_map_fallback_series(
+                        df_source=df_source,
+                        source_fields=source_fields,
+                        key_cols=[],
+                        src_map=src_map,
+                        target_col=target_col
+                    )
+
                     if not r_val:
                         print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: RULE_VALUE is blank.{Style.RESET_ALL}")
+                        if fallback_series is not None:
+                            df_target[target_col] = fallback_series
                         continue
 
                     map_path, key_cols, val_col = self._parse_map_config(r_val)
                     if not map_path or not key_cols:
                         print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Could not parse map config '{r_val}'.{Style.RESET_ALL}")
+                        if fallback_series is not None:
+                            df_target[target_col] = fallback_series
                         continue
 
-                    source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
                     if not source_fields:
                         # Enhancement: if SOURCE_FIELD blank, assume key columns are source column names.
                         source_fields = [k.strip().upper() for k in key_cols]
+                        fallback_series, resolved_cols = self._build_map_fallback_series(
+                            df_source=df_source,
+                            source_fields=source_fields,
+                            key_cols=key_cols,
+                            src_map=src_map,
+                            target_col=target_col
+                        )
 
                     print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: RULE_VALUE='{r_val}' | parsed_path='{map_path}' | keys={key_cols} | value={val_col} | source_fields={source_fields}{Style.RESET_ALL}")
 
                     lookup_dict = self._load_map_file(r_val)
                     if not lookup_dict:
                         print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Failed to build map lookup for '{r_val}'.{Style.RESET_ALL}")
+                        if fallback_series is not None:
+                            df_target[target_col] = fallback_series
                         continue
 
                     if len(key_cols) == 1 and len(source_fields) == 1:
@@ -220,6 +259,7 @@ class TransformEngine:
 
                         normalized_source = df_source[col_name].astype(str).map(self._normalize_map_part)
                         mapped_series = normalized_source.map(lookup_dict)
+                        mapped_series = mapped_series.where(mapped_series.notna(), df_source[col_name])
                         miss_count = int(mapped_series.isna().sum())
                         if miss_count:
                             print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
@@ -241,6 +281,8 @@ class TransformEngine:
                             lambda r: '||'.join([self._normalize_map_part(v) for v in r.values]), axis=1
                         )
                         mapped_series = composite_keys.map(lookup_dict)
+                        if fallback_series is not None:
+                            mapped_series = mapped_series.where(mapped_series.notna(), fallback_series)
                         miss_count = int(mapped_series.isna().sum())
                         if miss_count:
                             print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no composite map hit.{Style.RESET_ALL}")

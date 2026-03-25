@@ -117,4 +117,5 @@ class BatchProcessor:
         print(f"\n{Fore.CYAN}--- BATCH RUN COMPLETE ---{Style.RESET_ALL}")
         print(f"Success: {Fore.GREEN}{success_count}{Style.RESET_ALL} | Failed: {Fore.RED}{fail_count}{Style.RESET_ALL}")
 
-        pd.DataFrame(log_report).to_csv(f"{self.output_dir}/batch_log_{datetime.date.today()}.csv", index=False)
+        # Disabled per request: do not auto-generate batch execution CSV logs in output/.
+        # pd.DataFrame(log_report).to_csv(f"{self.output_dir}/batch_log_{datetime.date.today()}.csv", index=False)

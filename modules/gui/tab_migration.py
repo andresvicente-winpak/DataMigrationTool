@@ -55,7 +55,7 @@ class MigrationHub(ctk.CTkTabview):
         """Loads MCO_SHEET list from source_map.csv"""
         try:
             if os.path.exists("config/source_map.csv"):
-                df = pd.read_csv("config/source_map.csv")
+                df = self._read_csv_flexible("config/source_map.csv")
                 if 'MCO_SHEET' in df.columns:
                     sheets = sorted(df['MCO_SHEET'].dropna().unique().tolist())
                     if sheets:
@@ -70,10 +70,27 @@ class MigrationHub(ctk.CTkTabview):
             menu.configure(values=["Error"])
             var.set("Error")
 
+    def _read_csv_flexible(self, path):
+        """
+        Read CSVs that may come from Excel/Windows exports with non-UTF8 bytes.
+        """
+        encodings = ["utf-8", "utf-8-sig", "cp1252", "latin-1"]
+        last_err = None
+        for enc in encodings:
+            try:
+                return pd.read_csv(path, encoding=enc).fillna("")
+            except Exception as e:
+                last_err = e
+        raise last_err
+
     def _load_object_program_df(self):
         try:
             # Preferred source: merged objects_api.csv (OBJECTS + source/migration metadata)
             if os.path.exists("config/objects_api.csv"):
+                df = self._read_csv_flexible("config/objects_api.csv")
+            elif os.path.exists("config/source_map.csv"):
+                # Backward compatibility fallback
+                df = self._read_csv_flexible("config/source_map.csv")
                 df = pd.read_csv("config/objects_api.csv").fillna("")
             elif os.path.exists("config/source_map.csv"):
                 # Backward compatibility fallback
@@ -88,6 +105,10 @@ class MigrationHub(ctk.CTkTabview):
             # If merged file has no OBJECTS, try enriching from source_map/legacy files
             if "OBJECTS" not in df.columns:
                 if os.path.exists("config/objects_api.csv"):
+                    obj_df = self._read_csv_flexible("config/objects_api.csv")
+                    obj_df.columns = [c.strip().upper() for c in obj_df.columns]
+                elif os.path.exists("config/source_map.csv"):
+                    obj_df = self._read_csv_flexible("config/source_map.csv")
                     obj_df = pd.read_csv("config/objects_api.csv").fillna("")
                     obj_df.columns = [c.strip().upper() for c in obj_df.columns]
                 elif os.path.exists("config/source_map.csv"):
@@ -124,6 +145,7 @@ class MigrationHub(ctk.CTkTabview):
 
             # If source is missing in merged file, fallback to source_map by MCO_SHEET
             if (df["SOURCE_NORM"] == "").any() and os.path.exists("config/source_map.csv"):
+                src_df = self._read_csv_flexible("config/source_map.csv")
                 src_df = pd.read_csv("config/source_map.csv").fillna("")
                 src_df.columns = [c.strip().upper() for c in src_df.columns]
                 if {"MCO_SHEET", "SOURCE_FILE"}.issubset(set(src_df.columns)):
@@ -171,7 +193,7 @@ class MigrationHub(ctk.CTkTabview):
     def _load_scopes(self, menu):
         try:
             if os.path.exists("config/business_units.csv"):
-                df = pd.read_csv("config/business_units.csv")
+                df = self._read_csv_flexible("config/business_units.csv")
                 units = ["GLOBAL"] + df['UNIT'].dropna().unique().tolist()
                 menu.configure(values=units)
         except: pass
@@ -256,6 +278,7 @@ class MigrationHub(ctk.CTkTabview):
 
             # API fallback (for legacy files where API_NAME is missing in merged objects map)
             if not conf and os.path.exists("config/objects_api.csv"):
+                legacy_obj = self._read_csv_flexible("config/objects_api.csv")
                 legacy_obj = pd.read_csv("config/objects_api.csv").fillna("")
                 legacy_obj.columns = [c.strip().upper() for c in legacy_obj.columns]
                 if {"OBJECTS", "MCO_SHEET", "API_NAME"}.issubset(set(legacy_obj.columns)):
@@ -359,11 +382,12 @@ class MigrationHub(ctk.CTkTabview):
             print(f"{Fore.CYAN}   -> Target Master File: {master_name}{Style.RESET_ALL}")
             first_valid_run = True
             for t in tasks:
-                map_df = pd.read_csv('config/migration_map.csv')
+                map_file = 'config/objects_api.csv' if os.path.exists('config/objects_api.csv') else 'config/migration_map.csv'
+                map_df = self._read_csv_flexible(map_file)
                 map_df.columns = [c.upper().strip() for c in map_df.columns]
                 match = map_df[map_df['MCO_SHEET'].str.upper() == str(t['mco_sheet']).upper()]
                 if match.empty:
-                    print(f"{Fore.RED}    No Migration Map entry for {t['mco_sheet']}. Skipping.{Style.RESET_ALL}")
+                    print(f"{Fore.RED}    No mapping entry for {t['mco_sheet']} in {map_file}. Skipping.{Style.RESET_ALL}")
                     continue
                 trans = str(match.iloc[0]['TRANSACTION_SHEET'])
                 targets = [x.strip() for x in trans.split(',') if x.strip()]

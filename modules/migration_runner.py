@@ -13,7 +13,12 @@ class MigrationRunner:
     def __init__(self, map_path_override=None):
         self.output_dir = 'output'
         ui.ensure_folder(self.output_dir)
-        self.map_path = map_path_override if map_path_override else 'config/migration_map.csv'
+        if map_path_override:
+            self.map_path = map_path_override
+        elif os.path.exists('config/objects_api.csv'):
+            self.map_path = 'config/objects_api.csv'
+        else:
+            self.map_path = 'config/migration_map.csv'
 
     def _resolve_from_map(self, lookup_val, lookup_col):
         current_map = self.map_path

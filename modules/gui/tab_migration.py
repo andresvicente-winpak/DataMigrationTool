@@ -91,6 +91,10 @@ class MigrationHub(ctk.CTkTabview):
             elif os.path.exists("config/source_map.csv"):
                 # Backward compatibility fallback
                 df = self._read_csv_flexible("config/source_map.csv")
+                df = pd.read_csv("config/objects_api.csv").fillna("")
+            elif os.path.exists("config/source_map.csv"):
+                # Backward compatibility fallback
+                df = pd.read_csv("config/source_map.csv").fillna("")
             else:
                 return pd.DataFrame()
 
@@ -105,6 +109,10 @@ class MigrationHub(ctk.CTkTabview):
                     obj_df.columns = [c.strip().upper() for c in obj_df.columns]
                 elif os.path.exists("config/source_map.csv"):
                     obj_df = self._read_csv_flexible("config/source_map.csv")
+                    obj_df = pd.read_csv("config/objects_api.csv").fillna("")
+                    obj_df.columns = [c.strip().upper() for c in obj_df.columns]
+                elif os.path.exists("config/source_map.csv"):
+                    obj_df = pd.read_csv("config/source_map.csv").fillna("")
                     obj_df.columns = [c.strip().upper() for c in obj_df.columns]
                 else:
                     obj_df = pd.DataFrame()
@@ -138,6 +146,7 @@ class MigrationHub(ctk.CTkTabview):
             # If source is missing in merged file, fallback to source_map by MCO_SHEET
             if (df["SOURCE_NORM"] == "").any() and os.path.exists("config/source_map.csv"):
                 src_df = self._read_csv_flexible("config/source_map.csv")
+                src_df = pd.read_csv("config/source_map.csv").fillna("")
                 src_df.columns = [c.strip().upper() for c in src_df.columns]
                 if {"MCO_SHEET", "SOURCE_FILE"}.issubset(set(src_df.columns)):
                     src_df["MCO_KEY"] = src_df["MCO_SHEET"].astype(str).str.strip().str.upper()
@@ -270,6 +279,7 @@ class MigrationHub(ctk.CTkTabview):
             # API fallback (for legacy files where API_NAME is missing in merged objects map)
             if not conf and os.path.exists("config/objects_api.csv"):
                 legacy_obj = self._read_csv_flexible("config/objects_api.csv")
+                legacy_obj = pd.read_csv("config/objects_api.csv").fillna("")
                 legacy_obj.columns = [c.strip().upper() for c in legacy_obj.columns]
                 if {"OBJECTS", "MCO_SHEET", "API_NAME"}.issubset(set(legacy_obj.columns)):
                     match_legacy = legacy_obj[

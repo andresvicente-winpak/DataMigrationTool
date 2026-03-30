@@ -1,0 +1,164 @@
+[1mdiff --git a/modules/__pycache__/sdt_writer.cpython-313.pyc b/modules/__pycache__/sdt_writer.cpython-313.pyc[m
+[1mindex 238c475..469fd27 100644[m
+Binary files a/modules/__pycache__/sdt_writer.cpython-313.pyc and b/modules/__pycache__/sdt_writer.cpython-313.pyc differ
+[1mdiff --git a/modules/sdt_writer.py b/modules/sdt_writer.py[m
+[1mindex be5063c..c341c15 100644[m
+[1m--- a/modules/sdt_writer.py[m
+[1m+++ b/modules/sdt_writer.py[m
+[36m@@ -1,129 +1,10 @@[m
+[31m-				   [m
+ import os[m
+ import shutil[m
+[31m-								  [m
+[31m-								[m
+[31m-													[m
+[31m-[m
+[31m-[m
+[31m-				[m
+[31m-											[m
+[31m-									[m
+[31m-											   [m
+[31m-										[m
+[31m-[m
+[31m-																			 [m
+[31m-		   [m
+[31m-																	[m
+[31m-		   [m
+[31m-														[m
+[31m-												  [m
+[31m-													  [m
+[31m-[m
+[31m-																					 [m
+[31m-[m
+[31m-								[m
+[31m-													  [m
+[31m-[m
+[31m-															[m
+[31m-												  [m
+[31m-[m
+[31m-							 [m
+[31m-[m
+[31m-				 [m
+[31m-					  [m
+[31m-		   [m
+[31m-													   [m
+[31m-				   [m
+[31m-																 [m
+[31m-						  [m
+[31m-		   [m
+[31m-					  [m
+[31m-					 [m
+[31m-[m
+[31m-						  [m
+[31m-[m
+[31m-															  [m
+[31m-							[m
+[31m-				[m
+[31m-										 [m
+[31m-							 [m
+[31m-						[m
+[31m-[m
+[31m-				[m
+[31m-[m
+[31m-							   [m
+[31m-			 [m
+[31m-					  [m
+[31m-					[m
+[31m-				 [m
+[31m-					  [m
+[31m-						[m
+[31m-							  [m
+[31m-	  [m
+[31m-		   [m
+[31m-																			 [m
+[31m-																										 [m
+[31m-		   [m
+[31m-																	[m
+[31m-[m
+[31m-			[m
+[31m-												  [m
+[31m-																[m
+[31m-																			 [m
+[31m-				 [m
+[31m-								   [m
+[31m-													   [m
+[31m-[m
+[31m-							  [m
+[31m-										   [m
+[31m-[m
+[31m-											[m
+[31m-												   [m
+[31m-																													[m
+[31m-							[m
+[31m-[m
+[31m-								   [m
+[31m-[m
+[31m-															  [m
+[31m-														[m
+[31m-																	 [m
+[31m-[m
+[31m-								   [m
+[31m-																							  [m
+[31m-[m
+[31m-								  [m
+[31m-														   [m
+[31m-[m
+[31m-										  [m
+[31m-											   [m
+[31m-													   [m
+[31m-						 [m
+[31m-											[m
+[31m-[m
+[31m-												   [m
+[31m-																  [m
+[31m-[m
+[31m-										  [m
+[31m-																	  [m
+[31m-										[m
+[31m-[m
+[31m-								[m
+[31m-[m
+[31m-									[m
+[31m-														[m
+[31m-[m
+[31m-							  [m
+[31m-																		  [m
+[31m-				 [m
+ import pandas as pd[m
+ from colorama import Fore, Style[m
+[31m-			 [m
+ from openpyxl import load_workbook[m
+[31m-[m
+ from modules.transform_engine import TransformEngine[m
+ [m
+[31m-[m
+ class SDTWriter:[m
+     def __init__(self, output_dir='output'):[m
+         self.output_dir = output_dir[m
+[36m@@ -165,8 +46,10 @@[m [mclass SDTWriter:[m
+         # Convert "0.0" / "1.0" / "123.0" -> "0" / "1" / "123"[m
+         if s.endswith(".0"):[m
+             try:[m
+[32m+[m[32m                return str(int(float(s)))[m
+                 s = str(int(float(s)))[m
+             except Exception:[m
+[32m+[m[32m                return s[m
+                 pass[m
+ [m
+         # Prevent accidental formula injection / invalid formulas in output.[m
+[1mdiff --git a/output/LOAD_CRS620MI_20260305_v9.xlsx b/output/LOAD_CRS620MI_20260305_v9.xlsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..2e864c3[m
+Binary files /dev/null and b/output/LOAD_CRS620MI_20260305_v9.xlsx differ
+[1mdiff --git a/output/LOAD_CRS620MI_20260309.xlsx b/output/LOAD_CRS620MI_20260309.xlsx[m
+[1mnew file mode 100644[m
+[1mindex 0000000..93cd087[m
+Binary files /dev/null and b/output/LOAD_CRS620MI_20260309.xlsx differ
+[1mdiff --git a/output/~$LOAD_CRS620MI_20260305_v8.xlsx b/output/~$LOAD_CRS620MI_20260305_v8.xlsx[m
+[1mdeleted file mode 100644[m
+[1mindex 4f02b1f..0000000[m
+Binary files a/output/~$LOAD_CRS620MI_20260305_v8.xlsx and /dev/null differ
+[1mdiff --git a/output/~$LOAD_CRS620MI_20260305_v7.xlsx b/output/~$LOAD_CRS620MI_20260309.xlsx[m
+[1msimilarity index 100%[m
+[1mrename from output/~$LOAD_CRS620MI_20260305_v7.xlsx[m
+[1mrename to output/~$LOAD_CRS620MI_20260309.xlsx[m

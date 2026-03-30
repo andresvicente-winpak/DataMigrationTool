@@ -1,6 +1,10 @@
 MCO_SHEET,API_NAME,SDT_TEMPLATE,TRANSACTION_SHEET
 Item Master,MMS200MI,MMS200MI_API.xlsx,"API_MMS200MI_AddItmBasic,API_MMS200MI_UpdItmBasic,API_MMS200MI_DltItm,API_MMS200MI_UpdItmPrice"
 Item Warehouse,MMS200MI,MMS200MI_API.xlsx,"API_MMS200MI_AddItmWhs,API_MMS200MI_UpdItmWhs,API_MMS200MI_DltItmWhs"
+Item Facility,MMS200MI,MMS200MI_API.xlsx,API_MMS200MI_UpdItmFac
+Item Connect Packaging,MMS053MI,MMS053MI_API.xlsx,API_MMS053MI_AddItemConnPkg
+Item Supplier,PPS040MI,PPS040MI_API.xlsx,API_PPS040MI_AddItemSupplier
+Item Master Connect Alternate Units of Measure,MMS015MI,MMS015MI_API.xlsx,API_MMS015MI_Add
 Warehouse Locations,MMS010MI,MMS010MI_API.xlsx,
 Customers,CRS610MI,CRS610MI_API.xlsx,"API_CRS610MI_Copy,API_CRS610MI_ChgBasicData,API_CRS610MI_ChgFinancial,API_CRS610MI_ChgOrderInfo,API_CRS610MI_Delete,API_CRS610MI_ChgAddress,API_CRS610MI_AddText"
 Customer Addresses,CRS610MI,CRS610MI_API.xlsx,API_CRS610MI_AddAddress
@@ -10,33 +14,21 @@ Customer - Statistical,CRS610MI,CRS610MI_API.xlsx,"API_CRS610MI_Copy,API_CRS610M
 Customer - TextBlock,CRS610MI,CRS610MI_API.xlsx,API_CRS610MI_AddText
 Customer - CDF,CDFCUST,CUSEXTMI_API.xlsx,API_CUSEXTMI_AddFieldValue
 Customer Items - CDF,CDFCUSTITEM,CUSEXTMI_API.xlsx,API_CUSEXTMI_AddFieldValue
-Product Header,PDS001MI,PDS001MI_API.xlsx,"API_PDS001MI_Add,API_PDS001MI_Delete,API_PDS001MI_Update"
-Product Header Features,PDS001MI,PDS001MI_API.xlsx,API_PRD001MI_AddFeature
-Product Header Draw Measuremnts,PDS001MI,PDS001MI_API.xlsx,
-Product Variant Seq-1,PDS001MI,PDS001MI_API.xlsx,
-Product Variant Seq-2,PDS001MI,PDS001MI_API.xlsx,
-Product Matrixes Header,PDS001MI,PDS001MI_API.xlsx,
-Product Matrixes Lines,PDS001MI,PDS001MI_API.xlsx,
-Product Options - PDS050MI,PDS050MI,PDS050MI_API.xlsx,API_PDS050MI_Add
-Product Features - PDS055MI,PDS055MI,PDS055MI_API.xlsx,API_PDS055MI_Add
-ConnectOptionsFeatures PDS056MI,PDS056MI,PDS056MI_API.xlsx,API_PDS056MI_Add
-Work Centers - PDS010,PDS010MI,PDS010MI_API.xlsx,
-Work Shifts - MPD_PDS030,PDS030MI,PDS030MI_API.xlsx,
-Item Facility,MMS200MI,MMS200MI_API.xlsx,API_MMS200MI_UpdItmFac
 Suppliers,CRS620MI,CRS620MI_API.xlsx,"API_CRS620MI_CopyTemplate,API_CRS620MI_UpdSupplier,API_CRS620MI_DelSupplier"
 Supplier Addresses,CRS620MI,CRS620MI_API.xlsx,API_CRS620MI_AddAddress
 Supplier Bank Accounts,CRS692MI,CRS692MI_API.xlsx,CRS692MI_AddBankAccount2
 Supplier Purchase Accounting,CRS620MI,CRS620MI_API.xlsx,"CRS620MI_AddSupplier, CRS610MI_ChgBasicData"
 Supplier - Reference,CRS620MI,CRS620MI_API.xlsx,API_CRS620MI_AddSupplierRef
-Product Materials,PDS002MI,PDS002MI_API.xlsx,"API_PDS002MI_AddComponent,API_PDS002MI_UpdateComponent,API_PDS002MI_Delete"
-Product Operations,PDS002MI,PDS002MI_API.xlsx,"API_PDS002MI_AddOperation,API_PDS002MI_UpdateOperation,API_PDS002MI_Delete"
-Order Entry Text Messages,OIS165MI,OIS165MI_API.xlsx,"OIS165MI_AddCOEntMsg, OIS165MI_AddText"
-Item Connect Packaging,MMS053MI,MMS053MI_API.xlsx,API_MMS053MI_AddItemConnPkg
-Item Supplier,PPS040MI,PPS040MI_API.xlsx,API_PPS040MI_AddItemSupplier
-Item Master Connect Alternate Units of Measure,MMS015MI,MMS015MI_API.xlsx,API_MMS015MI_Add
-Supplier legacy field,CRS181MI,CRS181MI_API.xlsx,CRS181MI_Add
-Customer Add Business Chain,OIS038MI,OIS040MI_API.xlsx,OIS040MI_AddBusChain
-Attach customer to business chain,OIS040MI,OIS040MI_API.xlsx,OIS040MI_AddBusCHainCust
+Product Header,PDS001MI,PDS001MI_API.xlsx,API_PDS001MI_Add
+Product Materials,PDS002MI,PDS002MI_API.xlsx,API_PDS002MI_AddComponent
+Product Operations,PDS002MI,PDS002MI_API.xlsx,API_PDS002MI_AddOperation
 Product Options,PDS050MI,PDS050MI_API.xlsx,API_PDS050MI_Add
 Product Features,PDS055MI,PDS055MI_API.xlsx,API_PDS055MI_Add
 ConnectOptionsFeatures,PDS056MI,PDS056MI_API.xlsx,API_PDS056MI_Add
+Order Entry Text Messages,OIS165MI,OIS165MI_API.xlsx,"OIS165MI_AddCOEntMsg, OIS165MI_AddText"
+Supplier legacy field,CRS181MI,CRS181MI_API.xlsx,CRS181MI_Add
+Customer Add Business Chain,OIS038MI,OIS040MI_API.xlsx,OIS040MI_AddBusChain
+Attach customer to business chain,OIS040MI,OIS040MI_API.xlsx,OIS040MI_AddBusCHainCust
+Work Centers,PDS010MI,PDS010MI_API.xlsx,API_PDS010MI_AddWorkCenter
+Work Shifts - MPD_PDS030,PDS030MI,PDS030MI_API.xlsx,
+Product Header Features,PDS001MI,PDS001MI_API.xlsx,API_PDS001MI_AddFeature

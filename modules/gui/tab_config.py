@@ -63,13 +63,13 @@ class ConfigHub(ctk.CTkTabview):
         self.imp_mco.pack(fill="x", pady=5)
         bind_context_help(self.imp_mco, "Path to the Excel MCO (Mapping) file.")
         
-        btn_browse = ctk.CTkButton(frame, text="Browse", command=lambda: self._browse(self.imp_mco, "config/mco_specs"))
+        btn_browse = ctk.CTkButton(frame, text="Browse", command=self._browse_imp_mco)
         btn_browse.pack(fill="x", pady=5)
         bind_context_help(btn_browse, "Select the MCO file from the 'config/mco_specs' folder.")
         
         ctk.CTkLabel(frame, text="Select Sheet:").pack(anchor="w")
         self.imp_sheet_var = ctk.StringVar(value="Load File First")
-        self.imp_sheet_menu = ctk.CTkOptionMenu(frame, variable=self.imp_sheet_var)
+        self.imp_sheet_menu = ctk.CTkOptionMenu(frame, variable=self.imp_sheet_var, values=["Load File First"])
         self.imp_sheet_menu.pack(fill="x", pady=5)
         bind_context_help(self.imp_sheet_menu, "Select the specific Excel sheet containing the mapping logic.")
         self.imp_mco.bind("<FocusOut>", self._load_sheets_trigger)

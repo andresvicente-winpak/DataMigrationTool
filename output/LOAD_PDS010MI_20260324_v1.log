@@ -1,0 +1,127 @@
+
+====================================================================================================================================
+API_PDS010MI_AddWorkCenter	2026-03-24 3:52:58 PM   / Default UI Settings:  CONO: 100 /DIV: ---
+====================================================================================================================================
+Row 4 - NOK-Included in work center WTF1 does not exist
+Row 5 - NOK-Included in work center WTF2 does not exist
+Row 6 - NOK-Included in work center WTF3 does not exist
+Row 7 - NOK-Included in work center WTF4 does not exist
+Row 8 - NOK-Included in work center WTF5 does not exist
+Row 9 - NOK-Work center responsible  does not exist
+Row 10 - NOK-Work center responsible  does not exist
+Row 11 - NOK-Work center WPHA already exists
+Row 12 - NOK-Work center responsible  does not exist
+Row 13 - NOK-Work center WTF2 already exists
+Row 14 - NOK-Work center WTF3 already exists
+Row 15 - NOK-Included in work center WEX3 does not exist
+Row 16 - NOK-Included in work center WTF1 does not exist
+Row 17 - NOK-Included in work center WTF2 does not exist
+Row 18 - NOK-Included in work center WTF5 does not exist
+Row 19 - NOK-Work center WTF4 already exists
+Row 20 - NOK-Work center WTF5 already exists
+Row 21 - NOK-Included in work center WRR1 does not exist
+Row 22 - NOK-Included in work center WTF11 does not exist
+Row 23 - NOK-Included in work center WEX10 does not exist
+Row 24 - NOK-Work center WTF7 already exists
+Row 25 - NOK-Work center WTF6 already exists
+Row 26 - NOK-Work center WTF8 already exists
+Row 27 - NOK-Work center WTF14 already exists
+Row 28 - NOK-Work center WEX1 already exists
+Row 29 - NOK-Included in work center WTF16 does not exist
+Row 30 - NOK-Work center WTF17 already exists
+Row 31 - NOK-Work center responsible  does not exist
+Row 32 - NOK-Work center WIML2 already exists
+Row 33 - NOK-Work center WSL1 already exists
+Row 34 - NOK-Work center WTF9 already exists
+Row 35 - NOK-Work center responsible  does not exist
+Row 36 - NOK-Default resource must be entered
+Row 37 - NOK-Included in work center WTF25 does not exist
+Row 38 - NOK-Work center WTF41 already exists
+Row 39 - NOK-Work center WTF42 already exists
+Row 40 - NOK-Work center WTF43 already exists
+Row 41 - NOK-Work center WTF22 already exists
+Row 42 - NOK-Work center WTP02 already exists
+Row 43 - NOK-Work center WTP03 already exists
+Row 44 - NOK-Work center WTP04 already exists
+Row 45 - NOK-Work center WEX6 already exists
+Row 46 - NOK-Work center WTF44 already exists
+Row 47 - NOK-Work center WTF46 already exists
+Row 48 - NOK-Work center WTF45 already exists
+Row 49 - NOK-Work center WMTP2 already exists
+Row 50 - NOK-Work center WTF52 already exists
+Row 51 - NOK-Work center WMTP3 already exists
+Row 52 - NOK-Work center WTF53 already exists
+Row 53 - NOK-Work center WTF55 already exists
+Row 54 - NOK-Work center WIML1 already exists
+Row 55 - NOK-Work center WIML4 already exists
+Row 56 - NOK-Work center WIML3 already exists
+Row 57 - NOK-Work center WTF23 already exists
+Row 58 - NOK-Work center WPOD01 already exists
+Row 59 - NOK-Work center WPUC01 already exists
+Row 60 - NOK-Work center WSPT01 already exists
+
+====================================================================================================================================
+API_PDS001MI_Add	2026-03-24 3:56:18 PM   / Default UI Settings:  CONO: 100 /DIV: ---
+====================================================================================================================================
+Row 4 - NOK-Transaction Add in program PDS001MI requires a value for field FACI
+
+====================================================================================================================================
+API_PDS010MI_AddWorkCenter	2026-03-24 3:57:11 PM   / Default UI Settings:  CONO: 100 /DIV: ---
+====================================================================================================================================
+Row 4 - NOK-Default resource must be entered
+Row 5 - NOK-Default resource must be entered
+Row 6 - NOK-Default resource must be entered
+Row 7 - NOK-Default resource must be entered
+Row 8 - NOK-Default resource must be entered
+Row 9 - NOK-Work center responsible  does not exist
+Row 10 - NOK-Work center responsible  does not exist
+Row 11 - NOK-Work center WPHA already exists
+Row 12 - NOK-Work center responsible  does not exist
+Row 13 - NOK-Work center WTF2 already exists
+Row 14 - NOK-Work center WTF3 already exists
+Row 15 - NOK-Work center responsible  does not exist
+Row 16 - NOK-Work center responsible  does not exist
+Row 17 - NOK-Work center responsible  does not exist
+Row 18 - NOK-Work center responsible  does not exist
+Row 19 - NOK-Work center WTF4 already exists
+Row 20 - NOK-Work center WTF5 already exists
+Row 21 - NOK-Department 300180 does not exist
+Row 22 - NOK-Default resource must be entered
+Row 23 - NOK-Default resource must be entered
+Row 24 - NOK-Work center WTF7 already exists
+Row 25 - NOK-Work center WTF6 already exists
+Row 26 - NOK-Work center WTF8 already exists
+Row 27 - NOK-Work center WTF14 already exists
+Row 28 - NOK-Work center WEX1 already exists
+Row 29 - NOK-Default resource must be entered
+Row 30 - NOK-Work center WTF17 already exists
+Row 31 - NOK-Work center responsible  does not exist
+Row 32 - NOK-Work center WIML2 already exists
+Row 33 - NOK-Work center WSL1 already exists
+Row 34 - NOK-Work center WTF9 already exists
+Row 35 - NOK-Work center responsible  does not exist
+Row 36 - NOK-Default resource must be entered
+Row 37 - NOK-Default resource must be entered
+Row 38 - NOK-Work center WTF41 already exists
+Row 39 - NOK-Work center WTF42 already exists
+Row 40 - NOK-Work center WTF43 already exists
+Row 41 - NOK-Work center WTF22 already exists
+Row 42 - NOK-Work center WTP02 already exists
+Row 43 - NOK-Work center WTP03 already exists
+Row 44 - NOK-Work center WTP04 already exists
+Row 45 - NOK-Work center WEX6 already exists
+Row 46 - NOK-Work center WTF44 already exists
+Row 47 - NOK-Work center WTF46 already exists
+Row 48 - NOK-Work center WTF45 already exists
+Row 49 - NOK-Work center WMTP2 already exists
+Row 50 - NOK-Work center WTF52 already exists
+Row 51 - NOK-Work center WMTP3 already exists
+Row 52 - NOK-Work center WTF53 already exists
+Row 53 - NOK-Work center WTF55 already exists
+Row 54 - NOK-Work center WIML1 already exists
+Row 55 - NOK-Work center WIML4 already exists
+Row 56 - NOK-Work center WIML3 already exists
+Row 57 - NOK-Work center WTF23 already exists
+Row 58 - NOK-Work center WPOD01 already exists
+Row 59 - NOK-Work center WPUC01 already exists
+Row 60 - NOK-Work center WSPT01 already exists

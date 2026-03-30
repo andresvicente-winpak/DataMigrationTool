@@ -1,128 +1,9 @@
-				   
 import os
 import shutil
-								  
-								
-													
-
-
-				
-											
-									
-											   
-										
-
-																			 
-		   
-																	
-		   
-														
-												  
-													  
-
-																					 
-
-								
-													  
-
-															
-												  
-
-							 
-
-				 
-					  
-		   
-													   
-				   
-																 
-						  
-		   
-					  
-					 
-
-						  
-
-															  
-							
-				
-										 
-							 
-						
-
-				
-
-							   
-			 
-					  
-					
-				 
-					  
-						
-							  
-	  
-		   
-																			 
-																										 
-		   
-																	
-
-			
-												  
-																
-																			 
-				 
-								   
-													   
-
-							  
-										   
-
-											
-												   
-																													
-							
-
-								   
-
-															  
-														
-																	 
-
-								   
-																							  
-
-								  
-														   
-
-										  
-											   
-													   
-						 
-											
-
-												   
-																  
-
-										  
-																	  
-										
-
-								
-
-									
-														
-
-							  
-																		  
-				 
 import pandas as pd
 from colorama import Fore, Style
-			 
 from openpyxl import load_workbook
-
 from modules.transform_engine import TransformEngine
-
 
 class SDTWriter:
     def __init__(self, output_dir='output'):
@@ -165,8 +46,10 @@ class SDTWriter:
         # Convert "0.0" / "1.0" / "123.0" -> "0" / "1" / "123"
         if s.endswith(".0"):
             try:
+                return str(int(float(s)))
                 s = str(int(float(s)))
             except Exception:
+                return s
                 pass
 
         # Prevent accidental formula injection / invalid formulas in output.

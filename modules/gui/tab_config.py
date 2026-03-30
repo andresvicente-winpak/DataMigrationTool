@@ -295,6 +295,7 @@ class ConfigHub(ctk.CTkTabview):
         path = os.path.join('config', filename)
         
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
+        is_sql_map = "Objects API Map" in selection_key
 
         if not os.path.exists(path):
             if "business_units" in filename: 
@@ -358,6 +359,7 @@ class ConfigHub(ctk.CTkTabview):
         
         selection_key = self.map_var.get()
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
+        is_sql_map = "Objects API Map" in selection_key
         has_source_col = "SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]
         
         for c_idx, _ in enumerate(self.headers):

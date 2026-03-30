@@ -177,6 +177,7 @@ class ConfigHub(ctk.CTkTabview):
         
         self.map_files = {
             "Objects API Map (Merged)": "objects_api.csv",
+            "Source Map (Legacy Files)": "source_map.csv",
             "Surgical Def (Objects)": "surgical_def.csv",
             "Business Units (Scopes)": "business_units.csv"
         }
@@ -293,6 +294,7 @@ class ConfigHub(ctk.CTkTabview):
         filename = self.map_files[selection_key]
         path = os.path.join('config', filename)
         
+        is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
         is_sql_map = "Objects API Map" in selection_key
 
         if not os.path.exists(path):
@@ -356,6 +358,7 @@ class ConfigHub(ctk.CTkTabview):
         row_widgets = []
         
         selection_key = self.map_var.get()
+        is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
         is_sql_map = "Objects API Map" in selection_key
         has_source_col = "SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]
         

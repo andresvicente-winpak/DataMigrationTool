@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+output/
 output/*.xlsx
 output/*.csv
 output/*.log

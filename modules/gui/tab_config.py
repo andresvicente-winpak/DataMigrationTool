@@ -95,9 +95,17 @@ class ConfigHub(ctk.CTkTabview):
         path = self.imp_mco.get()
         if os.path.exists(path):
             sheets = MCOImporter().get_sheet_names(path)
-            self.imp_sheet_menu.configure(values=sheets)
-            if sheets: self.imp_sheet_var.set(sheets[0])
+            if sheets:
+                self.imp_sheet_menu.configure(values=sheets)
+                self.imp_sheet_var.set(sheets[0])
+            else:
+                self.imp_sheet_menu.configure(values=["No Sheets Found"])
+                self.imp_sheet_var.set("No Sheets Found")
+                messagebox.showerror("Sheet Load Error", "No worksheets were detected in the selected file.\n\nPlease confirm this is a valid Excel workbook (.xlsx/.xlsm).")
 
+    def _browse_imp_mco(self):
+        self._browse(self.imp_mco, "config/mco_specs")
+        self._load_sheets_trigger()
     def _run_check(self):
         path = self.imp_mco.get()
         if not path or not os.path.exists(path): return

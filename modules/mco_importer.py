@@ -13,8 +13,13 @@ class MCOImporter:
     # GUI HELPERS
     # =========================================================================
     def get_sheet_names(self, mco_path):
-        try: return pd.ExcelFile(mco_path).sheet_names
-        except: return []
+        try:
+            return pd.ExcelFile(mco_path, engine='openpyxl').sheet_names
+        except Exception:
+            try:
+                return pd.ExcelFile(mco_path).sheet_names
+            except Exception:
+                return []
 
     def run_import_headless(self, mco_path, selected_sheet, api_name, output_dir='config/rules', overwrite_all=False):
         try:

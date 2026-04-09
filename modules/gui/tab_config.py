@@ -613,3 +613,4 @@ class ConfigHub(ctk.CTkTabview):
             )
         except Exception as e:
             messagebox.showerror("SQL Test Failed", f"Query failed:\n{e}")
+

@@ -304,7 +304,8 @@ class ConfigHub(ctk.CTkTabview):
         btn_save.pack(side="right")
 
     def _load_map(self, _):
-        for widget in self.grid_frame.winfo_children(): widget.destroy()
+        for widget in self.grid_frame.winfo_children():
+            widget.destroy()
         self.cells = []
         self.headers = []
 
@@ -313,7 +314,6 @@ class ConfigHub(ctk.CTkTabview):
         path = os.path.join('config', filename)
         
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
-        is_sql_map = "Objects API Map" in selection_key
 
         if not os.path.exists(path):
             if "business_units" in filename: 
@@ -329,85 +329,113 @@ class ConfigHub(ctk.CTkTabview):
                 if 'KEY_COLUMN' not in df_check.columns:
                     df_check['KEY_COLUMN'] = ''
                     df_check.to_csv(path, index=False)
-            except: pass
-
+            except:
+                pass
+        
         try:
             df = self._read_csv_flexible(path)
             self.headers = list(df.columns)
             source_col_name = self._get_source_col_name()
-            
-            for i, h in enumerate(self.headers):
-                ctk.CTkLabel(self.grid_frame, text=h, font=("Arial", 12, "bold")).grid(row=0, column=i, padx=5, pady=5, sticky="w")
-            
-            # Additional column headers for Actions
-            action_col_start = len(self.headers)
             has_source_actions = is_sql_map and bool(source_col_name)
+
+            for i, h in enumerate(self.headers):
+                ctk.CTkLabel(self.grid_frame, text=h, font=("Arial", 12, "bold")).grid(
+                    row=0, column=i, padx=5, pady=5, sticky="w"
+                )
+
+            action_col_start = len(self.headers)
             if has_source_actions:
-            if is_sql_map and source_col_name:
-            if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
-                ctk.CTkLabel(self.grid_frame, text="ACTIONS", font=("Arial", 12, "bold"), text_color="cyan").grid(row=0, column=action_col_start, padx=5, sticky="w")
+                ctk.CTkLabel(
+                    self.grid_frame,
+                    text="ACTIONS",
+                    font=("Arial", 12, "bold"),
+                    text_color="cyan"
+                ).grid(row=0, column=action_col_start, padx=5, sticky="w")
 
             for r_idx, row in df.iterrows():
                 row_widgets = []
                 for c_idx, col in enumerate(self.headers):
                     ent = ctk.CTkEntry(self.grid_frame)
                     ent.insert(0, str(row[col]))
-                    ent.grid(row=r_idx+1, column=c_idx, padx=2, pady=2, sticky="ew")
+                    ent.grid(row=r_idx + 1, column=c_idx, padx=2, pady=2, sticky="ew")
                     row_widgets.append(ent)
                 
                 btn_col = action_col_start
                 if has_source_actions:
-                    # Edit button for long SQL/source expressions
-                if is_sql_map and source_col_name:
-                    # Edit button for long SQL/source expressions
-                if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
-                    # NEW: Edit Button for Long SQL
-                    btn_edit = ctk.CTkButton(self.grid_frame, text="Edit", width=40, fg_color="#555", command=lambda r=r_idx: self._edit_source_sql(r))
-                    btn_edit.grid(row=r_idx+1, column=btn_col, padx=2)
+                    btn_edit = ctk.CTkButton(
+                        self.grid_frame,
+                        text="Edit",
+                        width=40,
+                        fg_color="#555",
+                        command=lambda r=r_idx: self._edit_source_sql(r)
+                    )
+                    btn_edit.grid(row=r_idx + 1, column=btn_col, padx=2)
                     bind_context_help(btn_edit, "Open larger editor for SQL queries.")
                     btn_col += 1
                     
-                    # Test button next to JOIN_KEY/actions
-                    btn_test = ctk.CTkButton(self.grid_frame, text="Test", width=40, fg_color="#0055AA", command=lambda r=r_idx: self._test_sql_row(r))
-                    btn_test.grid(row=r_idx+1, column=btn_col, padx=2)
+                    btn_test = ctk.CTkButton(
+                        self.grid_frame,
+                        text="Test",
+                        width=40,
+                        fg_color="#0055AA",
+                        command=lambda r=r_idx: self._test_sql_row(r)
+                    )
+                    btn_test.grid(row=r_idx + 1, column=btn_col, padx=2)
                     bind_context_help(btn_test, "Test connection and run query (Only if line starts with SQL:)")
                     btn_col += 1
 
-                btn_del = ctk.CTkButton(self.grid_frame, text="X", width=30, fg_color="#550000", command=lambda r=r_idx: self._delete_row(r))
-                btn_del.grid(row=r_idx+1, column=btn_col, padx=2)
-                
+                btn_del = ctk.CTkButton(
+                    self.grid_frame,
+                    text="X",
+                    width=30,
+                    fg_color="#550000",
+                    command=lambda r=r_idx: self._delete_row(r)
+                )
+                btn_del.grid(row=r_idx + 1, column=btn_col, padx=2)
+
                 self.cells.append(row_widgets)
                 
-        except Exception as e: print(f"Error loading map: {e}")
+        except Exception as e:
+            print(f"Error loading map: {e}")
 
     def _add_row(self):
         r_idx = len(self.cells) + 1
-        row_widgets = []
-        
+        row_widgets = []        
+
         selection_key = self.map_var.get()
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
         has_source_col = self._get_source_col_name() is not None
-        is_sql_map = "Objects API Map" in selection_key
-        has_source_col = "SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]
         
         for c_idx, _ in enumerate(self.headers):
             ent = ctk.CTkEntry(self.grid_frame)
             ent.grid(row=r_idx, column=c_idx, padx=2, pady=2, sticky="ew")
             row_widgets.append(ent)
-            
+                
         btn_col = len(self.headers)
         if is_sql_map and has_source_col:
-            curr_idx = len(self.cells) 
-            # NEW: Edit Button
-            btn_edit = ctk.CTkButton(self.grid_frame, text="Edit", width=40, fg_color="#555", command=lambda r=curr_idx: self._edit_source_sql(r))
+            curr_idx = len(self.cells)
+
+            btn_edit = ctk.CTkButton(
+                self.grid_frame,
+                text="Edit",
+                width=40,
+                fg_color="#555",
+                command=lambda r=curr_idx: self._edit_source_sql(r)
+            )
             btn_edit.grid(row=r_idx, column=btn_col, padx=2)
             btn_col += 1
             
-            btn_test = ctk.CTkButton(self.grid_frame, text="Test", width=40, fg_color="#0055AA", command=lambda r=curr_idx: self._test_sql_row(r))
+            btn_test = ctk.CTkButton(
+                self.grid_frame,
+                text="Test",
+                width=40,
+                fg_color="#0055AA",
+                command=lambda r=curr_idx: self._test_sql_row(r)
+            )
             btn_test.grid(row=r_idx, column=btn_col, padx=2)
             btn_col += 1
 
-        # Delete Button (for new row, we can't easily delete until reload, but UI symmetry)
+        # Delete button placeholder for unsaved rows.
         ctk.CTkLabel(self.grid_frame, text="(Save)", font=("Arial", 10)).grid(row=r_idx, column=btn_col, padx=2)
 
         self.cells.append(row_widgets)
@@ -433,101 +461,3 @@ class ConfigHub(ctk.CTkTabview):
         popup.title("SQL Query Editor")
         popup.geometry("600x400")
         popup.grab_set()
-
-        ctk.CTkLabel(popup, text="Source Query Editor", font=("Arial", 14, "bold")).pack(pady=10)
-        
-        txt = ctk.CTkTextbox(popup, wrap="word")
-        txt.pack(fill="both", expand=True, padx=20, pady=5)
-        txt.insert("0.0", current_val)
-        
-        def save_edit():
-            # Get text and flatten to single line for CSV safety
-            raw = txt.get("0.0", "end").strip()
-            # Replace newlines with spaces so it stays on one CSV line
-            flat = raw.replace("\n", " ").replace("\r", " ")
-            while "  " in flat: flat = flat.replace("  ", " ") # Clean multi-spaces
-            
-            entry_widget.delete(0, "end")
-            entry_widget.insert(0, flat)
-            popup.destroy()
-        
-        ctk.CTkButton(popup, text="Update Row", fg_color="green", command=save_edit).pack(pady=10)
-
-    def _test_sql_row(self, row_idx):
-        if row_idx >= len(self.cells): return
-        widgets = self.cells[row_idx]
-        if not widgets: return
-        
-        try:
-            col_map = {h.upper().strip(): i for i, h in enumerate(self.headers)}
-            if 'SOURCE_FILE' in col_map: col_idx = col_map['SOURCE_FILE']
-            elif 'SOURCE' in col_map: col_idx = col_map['SOURCE']
-            elif self._get_source_col_name() is not None:
-                col_idx = self.headers.index(self._get_source_col_name())
-            else: raise ValueError("SOURCE/SOURCE_FILE column not found")
-        except Exception: col_idx = 0
-            
-        val = widgets[col_idx].get().strip()
-        
-        if not val.upper().startswith("SQL:"):
-            messagebox.showinfo("Ignored", f"This row is not a SQL connection.\nString must start with 'SQL:'")
-            return
-            
-        try:
-            df = DataExtractor().load_data(val)
-            cols = list(df.columns)
-            preview = df.head(3).to_string()
-            messagebox.showinfo("Connection Successful", f"Query returned {len(df)} rows.\n\nColumns: {cols}\n\nPreview:\n{preview}")
-        except Exception as e:
-            messagebox.showerror("Connection Failed", f"Error:\n{e}")
-
-    def _save_map(self):
-        filename = self.map_files[self.map_var.get()]
-        path = os.path.join('config', filename)
-
-        issues = []  
-        for r_idx, row_widgets in enumerate(self.cells, start=1):
-            if not row_widgets or not row_widgets[0].winfo_exists(): continue
-
-            for c_idx, w in enumerate(row_widgets):
-                val = w.get()
-                if isinstance(val, str) and val != val.rstrip():
-                    col_name = self.headers[c_idx] if c_idx < len(self.headers) else f"COL_{c_idx}"
-                    issues.append((r_idx, col_name, val))
-                    try: w.configure(border_color="red")
-                    except: pass
-                else:
-                    try: w.configure(border_color=None)
-                    except: pass
-
-        if issues:
-            preview_lines = []
-            for (r, col, v) in issues[:10]:
-                preview_lines.append(f"Row {r}, Column '{col}': '{v}'")
-            
-            messagebox.showwarning(
-                "Trailing spaces detected",
-                "Some cells end with trailing spaces. Please remove them:\n\n" + "\n".join(preview_lines)
-            )
-            return
-
-        data = []
-        for row_widgets in self.cells:
-            if row_widgets and row_widgets[0].winfo_exists():
-                data.append({self.headers[i]: w.get() for i, w in enumerate(row_widgets)})
-
-        pd.DataFrame(data).to_csv(path, index=False)
-        print(f"Saved {filename}")
-        self._load_map(None)
-    
-    def _delete_row(self, row_idx):
-        filename = self.map_files[self.map_var.get()]
-        path = os.path.join('config', filename)
-        try:
-            df = self._read_csv_flexible(path)
-            if row_idx < len(df):
-                df = df.drop(row_idx)
-                df.to_csv(path, index=False)
-                self._load_map(None)
-        except Exception as e:
-            print(f"Delete failed: {e}")

@@ -341,6 +341,8 @@ class ConfigHub(ctk.CTkTabview):
             
             # Additional column headers for Actions
             action_col_start = len(self.headers)
+            has_source_actions = is_sql_map and bool(source_col_name)
+            if has_source_actions:
             if is_sql_map and source_col_name:
             if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
                 ctk.CTkLabel(self.grid_frame, text="ACTIONS", font=("Arial", 12, "bold"), text_color="cyan").grid(row=0, column=action_col_start, padx=5, sticky="w")
@@ -354,6 +356,8 @@ class ConfigHub(ctk.CTkTabview):
                     row_widgets.append(ent)
                 
                 btn_col = action_col_start
+                if has_source_actions:
+                    # Edit button for long SQL/source expressions
                 if is_sql_map and source_col_name:
                     # Edit button for long SQL/source expressions
                 if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):

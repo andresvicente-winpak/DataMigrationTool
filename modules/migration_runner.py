@@ -13,7 +13,12 @@ class MigrationRunner:
     def __init__(self, map_path_override=None):
         self.output_dir = 'output'
         ui.ensure_folder(self.output_dir)
-        self.map_path = map_path_override if map_path_override else 'config/migration_map.csv'
+        if map_path_override:
+            self.map_path = map_path_override
+        elif os.path.exists('config/objects_api.csv'):
+            self.map_path = 'config/objects_api.csv'
+        else:
+            self.map_path = 'config/migration_map.csv'
 
     def _resolve_from_map(self, lookup_val, lookup_col):
         current_map = self.map_path
@@ -26,7 +31,7 @@ class MigrationRunner:
                 return None, None, None
         
         try:
-            df = pd.read_csv(current_map).fillna("")
+            df = self._read_csv_flexible(current_map)
             df.columns = [c.upper().strip() for c in df.columns]
             
             if not lookup_val: return None, None, None
@@ -55,6 +60,16 @@ class MigrationRunner:
         except Exception as e:
             print(f"{Fore.RED}Error reading migration map: {e}{Style.RESET_ALL}")
             return None, None, None
+
+    def _read_csv_flexible(self, path):
+        encodings = ["utf-8", "utf-8-sig", "cp1252", "latin-1"]
+        last_err = None
+        for enc in encodings:
+            try:
+                return pd.read_csv(path, encoding=enc).fillna("")
+            except Exception as e:
+                last_err = e
+        raise last_err
 
     def _get_unique_filename(self, directory, filename):
         base, ext = os.path.splitext(filename)
@@ -98,8 +113,18 @@ class MigrationRunner:
                 return
 
             if not target_sheets:
-                target_sheets = map_sheets if map_sheets else [ui.get_sheet_selection(sdt_path)]
-                if not target_sheets[0]: return
+                if map_sheets:
+                    target_sheets = map_sheets
+                else:
+                    # GUI-safe fallback: avoid interactive console prompts
+                    try:
+                        target_sheets = pd.ExcelFile(sdt_path).sheet_names
+                        if not silent:
+                            print(f"{Fore.YELLOW}   [Info] TRANSACTION_SHEET missing in map. Using all template sheets.{Style.RESET_ALL}")
+                    except Exception:
+                        target_sheets = [ui.get_sheet_selection(sdt_path)]
+                        if not target_sheets[0]:
+                            return
 
             if not silent: print(f"\n{Fore.CYAN}--- STARTING MIGRATION ({program_name}) ---{Style.RESET_ALL}")
             

@@ -73,13 +73,13 @@ class ConfigHub(ctk.CTkTabview):
         self.imp_mco.pack(fill="x", pady=5)
         bind_context_help(self.imp_mco, "Path to the Excel MCO (Mapping) file.")
         
-        btn_browse = ctk.CTkButton(frame, text="Browse", command=lambda: self._browse(self.imp_mco, "config/mco_specs"))
+        btn_browse = ctk.CTkButton(frame, text="Browse", command=self._browse_imp_mco)
         btn_browse.pack(fill="x", pady=5)
         bind_context_help(btn_browse, "Select the MCO file from the 'config/mco_specs' folder.")
         
         ctk.CTkLabel(frame, text="Select Sheet:").pack(anchor="w")
         self.imp_sheet_var = ctk.StringVar(value="Load File First")
-        self.imp_sheet_menu = ctk.CTkOptionMenu(frame, variable=self.imp_sheet_var)
+        self.imp_sheet_menu = ctk.CTkOptionMenu(frame, variable=self.imp_sheet_var, values=["Load File First"])
         self.imp_sheet_menu.pack(fill="x", pady=5)
         bind_context_help(self.imp_sheet_menu, "Select the specific Excel sheet containing the mapping logic.")
         self.imp_mco.bind("<FocusOut>", self._load_sheets_trigger)
@@ -105,9 +105,17 @@ class ConfigHub(ctk.CTkTabview):
         path = self.imp_mco.get()
         if os.path.exists(path):
             sheets = MCOImporter().get_sheet_names(path)
-            self.imp_sheet_menu.configure(values=sheets)
-            if sheets: self.imp_sheet_var.set(sheets[0])
+            if sheets:
+                self.imp_sheet_menu.configure(values=sheets)
+                self.imp_sheet_var.set(sheets[0])
+            else:
+                self.imp_sheet_menu.configure(values=["No Sheets Found"])
+                self.imp_sheet_var.set("No Sheets Found")
+                messagebox.showerror("Sheet Load Error", "No worksheets were detected in the selected file.\n\nPlease confirm this is a valid Excel workbook (.xlsx/.xlsm).")
 
+    def _browse_imp_mco(self):
+        self._browse(self.imp_mco, "config/mco_specs")
+        self._load_sheets_trigger()
     def _run_check(self):
         path = self.imp_mco.get()
         if not path or not os.path.exists(path): return
@@ -305,6 +313,7 @@ class ConfigHub(ctk.CTkTabview):
         path = os.path.join('config', filename)
         
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
+        is_sql_map = "Objects API Map" in selection_key
 
         if not os.path.exists(path):
             if "business_units" in filename: 
@@ -333,6 +342,7 @@ class ConfigHub(ctk.CTkTabview):
             # Additional column headers for Actions
             action_col_start = len(self.headers)
             if is_sql_map and source_col_name:
+            if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
                 ctk.CTkLabel(self.grid_frame, text="ACTIONS", font=("Arial", 12, "bold"), text_color="cyan").grid(row=0, column=action_col_start, padx=5, sticky="w")
 
             for r_idx, row in df.iterrows():
@@ -346,6 +356,8 @@ class ConfigHub(ctk.CTkTabview):
                 btn_col = action_col_start
                 if is_sql_map and source_col_name:
                     # Edit button for long SQL/source expressions
+                if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
+                    # NEW: Edit Button for Long SQL
                     btn_edit = ctk.CTkButton(self.grid_frame, text="Edit", width=40, fg_color="#555", command=lambda r=r_idx: self._edit_source_sql(r))
                     btn_edit.grid(row=r_idx+1, column=btn_col, padx=2)
                     bind_context_help(btn_edit, "Open larger editor for SQL queries.")
@@ -371,6 +383,8 @@ class ConfigHub(ctk.CTkTabview):
         selection_key = self.map_var.get()
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
         has_source_col = self._get_source_col_name() is not None
+        is_sql_map = "Objects API Map" in selection_key
+        has_source_col = "SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]
         
         for c_idx, _ in enumerate(self.headers):
             ent = ctk.CTkEntry(self.grid_frame)

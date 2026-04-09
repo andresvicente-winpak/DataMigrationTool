@@ -55,6 +55,16 @@ class ConfigHub(ctk.CTkTabview):
                 last_err = e
         raise last_err
 
+    def _get_source_col_name(self):
+        """
+        Return actual source column name if present (supports SOURCE_FILE / SOURCE / variants).
+        """
+        for h in self.headers:
+            norm = h.upper().strip()
+            if norm in ("SOURCE_FILE", "SOURCE") or norm.startswith("SOURCE"):
+                return h
+        return None
+
     # --- TAB 1: IMPORT ---
     def _build_imp(self, frame):
         ctk.CTkLabel(frame, text="Import Specification", font=("Arial", 18, "bold")).pack(anchor="w", pady=10)
@@ -324,12 +334,14 @@ class ConfigHub(ctk.CTkTabview):
         try:
             df = self._read_csv_flexible(path)
             self.headers = list(df.columns)
+            source_col_name = self._get_source_col_name()
             
             for i, h in enumerate(self.headers):
                 ctk.CTkLabel(self.grid_frame, text=h, font=("Arial", 12, "bold")).grid(row=0, column=i, padx=5, pady=5, sticky="w")
             
             # Additional column headers for Actions
             action_col_start = len(self.headers)
+            if is_sql_map and source_col_name:
             if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
                 ctk.CTkLabel(self.grid_frame, text="ACTIONS", font=("Arial", 12, "bold"), text_color="cyan").grid(row=0, column=action_col_start, padx=5, sticky="w")
 
@@ -342,6 +354,8 @@ class ConfigHub(ctk.CTkTabview):
                     row_widgets.append(ent)
                 
                 btn_col = action_col_start
+                if is_sql_map and source_col_name:
+                    # Edit button for long SQL/source expressions
                 if is_sql_map and ("SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]):
                     # NEW: Edit Button for Long SQL
                     btn_edit = ctk.CTkButton(self.grid_frame, text="Edit", width=40, fg_color="#555", command=lambda r=r_idx: self._edit_source_sql(r))
@@ -349,6 +363,7 @@ class ConfigHub(ctk.CTkTabview):
                     bind_context_help(btn_edit, "Open larger editor for SQL queries.")
                     btn_col += 1
                     
+                    # Test button next to JOIN_KEY/actions
                     btn_test = ctk.CTkButton(self.grid_frame, text="Test", width=40, fg_color="#0055AA", command=lambda r=r_idx: self._test_sql_row(r))
                     btn_test.grid(row=r_idx+1, column=btn_col, padx=2)
                     bind_context_help(btn_test, "Test connection and run query (Only if line starts with SQL:)")
@@ -367,6 +382,7 @@ class ConfigHub(ctk.CTkTabview):
         
         selection_key = self.map_var.get()
         is_sql_map = ("Objects API Map" in selection_key) or ("Source Map" in selection_key)
+        has_source_col = self._get_source_col_name() is not None
         is_sql_map = "Objects API Map" in selection_key
         has_source_col = "SOURCE_FILE" in [h.upper().strip() for h in self.headers] or "SOURCE" in [h.upper().strip() for h in self.headers]
         
@@ -401,6 +417,8 @@ class ConfigHub(ctk.CTkTabview):
             col_map = {h.upper().strip(): i for i, h in enumerate(self.headers)}
             if 'SOURCE_FILE' in col_map: col_idx = col_map['SOURCE_FILE']
             elif 'SOURCE' in col_map: col_idx = col_map['SOURCE']
+            elif self._get_source_col_name() is not None:
+                col_idx = self.headers.index(self._get_source_col_name())
             else: return # No source file column
         except: return
 
@@ -440,6 +458,8 @@ class ConfigHub(ctk.CTkTabview):
             col_map = {h.upper().strip(): i for i, h in enumerate(self.headers)}
             if 'SOURCE_FILE' in col_map: col_idx = col_map['SOURCE_FILE']
             elif 'SOURCE' in col_map: col_idx = col_map['SOURCE']
+            elif self._get_source_col_name() is not None:
+                col_idx = self.headers.index(self._get_source_col_name())
             else: raise ValueError("SOURCE/SOURCE_FILE column not found")
         except Exception: col_idx = 0
             

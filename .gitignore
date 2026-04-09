@@ -4,5 +4,5 @@ output/
 output/*.xlsx
 output/*.csv
 output/*.log
-config/rules/.history
-config/rules/.snapshots
+config/rules/.history/
+config/rules/.snapshots/

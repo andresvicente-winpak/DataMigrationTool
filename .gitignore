@@ -6,3 +6,4 @@ output/*.csv
 output/*.log
 config/rules/.history/*
 config/rules/.snapshots/*
+>>>>>>> d51572ca26d04df0521d0b962ef119d78414c712

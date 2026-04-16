@@ -8,6 +8,7 @@ from modules.extractor import DataExtractor
 from modules.sdt_writer import SDTWriter
 from modules.transform_engine import FilterEngine
 import modules.ui as ui
+from modules.crs620mi_suno_expander import expand_crs620mi_suno
 
 class MigrationRunner:
     def __init__(self, map_path_override=None):
@@ -155,6 +156,18 @@ class MigrationRunner:
                     out_name = self._get_unique_filename(self.output_dir, base_name)
             
             writer.generate_from_template(sdt_path, df_legacy, rules, target_sheets, out_name, append_if_exists=append_if_exists)
+
+            if str(program_name).strip().upper() == "CRS620MI":
+                lookup_path = os.path.join("translation_tbl", "OLD_NEW_SUNO.xlsx")
+                output_path = os.path.join(self.output_dir, out_name)
+                if os.path.exists(lookup_path) and os.path.exists(output_path):
+                    summary = expand_crs620mi_suno(output_path, lookup_path)
+                    if not silent:
+                        print(f"   [CRS620MI SUNO Expand] Applied translation_tbl/OLD_NEW_SUNO.xlsx to {out_name}")
+                        for title, before, after in summary:
+                            print(f"      - {title}: {before} -> {after}")
+                elif not silent:
+                    print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped (missing file).{Style.RESET_ALL}")
             
         except Exception as e:
             print(f"{Fore.RED}FATAL ERROR: {e}{Style.RESET_ALL}")

@@ -162,7 +162,6 @@ class MigrationRunner:
                 output_path = os.path.join(self.output_dir, out_name)
                 if os.path.exists(lookup_path) and os.path.exists(output_path):
                     try:
-                        from modules.crs620mi_suno_expander import expand_crs620mi_suno
                         summary = expand_crs620mi_suno(output_path, lookup_path)
                         if not silent:
                             print(f"   [CRS620MI SUNO Expand] Applied translation_tbl/OLD_NEW_SUNO.xlsx to {out_name}")
@@ -171,23 +170,7 @@ class MigrationRunner:
                     except Exception as expander_err:
                         if not silent:
                             print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped ({expander_err}).{Style.RESET_ALL}")
-<<<<<<< HEAD
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-                    summary = expand_crs620mi_suno(output_path, lookup_path)
-                    if not silent:
-                        print(f"   [CRS620MI SUNO Expand] Applied translation_tbl/OLD_NEW_SUNO.xlsx to {out_name}")
-                        for title, before, after in summary:
-                            print(f"      - {title}: {before} -> {after}")
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> 185a9228caea2048dc0e26a748224a89c61a1306
+
                 elif not silent:
                     print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped (missing file).{Style.RESET_ALL}")
             

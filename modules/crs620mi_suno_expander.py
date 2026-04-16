@@ -54,7 +54,7 @@ def build_maps(lookup_path: str) -> tuple[dict[str, list[str]], dict[str, str], 
         news_to_old[new] = old
 
     return old_to_news, news_to_old, multi_old_keys
-
+    
 
 def clone_row_styles(ws, src_row: int, dst_row: int, max_col: int) -> None:
     for c in range(1, max_col + 1):

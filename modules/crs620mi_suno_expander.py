@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
+from typing import Optional
 from openpyxl import load_workbook
 
 HEADER_ROW = 1
@@ -233,6 +234,7 @@ def process_sheet(ws, old_to_news, news_to_old):
     return len(data_rows), len(new_rows)
 
 
+def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: Optional[str] = None):
 def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | None = None):
     resolved_output = output_path or target_path
     old_to_news, news_to_old, multi_old_keys = build_maps(lookup_path)

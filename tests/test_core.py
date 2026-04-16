@@ -408,3 +408,49 @@ def test_28_mixed_source_extraction_logic():
         
     finally:
         extractor.extractor.load_data = original_load
+
+def test_29_crs620mi_suno_expander_basic():
+    from modules.crs620mi_suno_expander import expand_crs620mi_suno
+
+    lookup_path = f"{DATA_DIR}/lookup_old_new_suno.xlsx"
+    wb_lookup = pd.ExcelWriter(lookup_path, engine='openpyxl')
+    pd.DataFrame({
+        'SUNO': ['1000', '1000', '2000'],
+        'NEWSUNO': ['N100A', 'N100B', 'N200A'],
+    }).to_excel(wb_lookup, index=False, sheet_name='Sheet1')
+    wb_lookup.close()
+
+    target_path = f"{OUT_DIR}/crs620_target.xlsx"
+    wb = pd.ExcelWriter(target_path, engine='openpyxl')
+
+    copy_df = pd.DataFrame([
+        ['SUNO', 'SUNO#'],
+        ['', ''],
+        ['', ''],
+        ['1000', ''],
+    ])
+    copy_df.to_excel(wb, sheet_name='API_CRS620MI_CopyTemplate', header=False, index=False)
+
+    upd_df = pd.DataFrame([
+        ['CFI1', 'SUNO'],
+        ['', ''],
+        ['', ''],
+        ['1000', ''],
+    ])
+    upd_df.to_excel(wb, sheet_name='API_CRS620MI_UpdSupplier', header=False, index=False)
+
+    wb.close()
+
+    summary = expand_crs620mi_suno(target_path, lookup_path)
+    assert summary
+
+    out_wb = load_workbook(target_path)
+    copy_ws = out_wb['API_CRS620MI_CopyTemplate']
+    upd_ws = out_wb['API_CRS620MI_UpdSupplier']
+
+    assert copy_ws.cell(4, 1).value == 'N100A'
+    assert copy_ws.cell(4, 2).value == '1000'
+    assert copy_ws.cell(5, 1).value == 'N100B'
+
+    assert upd_ws.cell(4, 2).value == 'N100A'
+    assert upd_ws.cell(5, 2).value == 'N100B'

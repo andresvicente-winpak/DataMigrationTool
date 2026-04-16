@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 
 HEADER_ROW = 1
 DATA_START_ROW = 4
+CRS620MI_TAB_PREFIX = "API_CRS620MI_"
 
 
 def norm(v):
@@ -22,11 +23,23 @@ def build_maps(lookup_path: str):
 
     old_to_news = {}
     news_to_old = {}
+    multi_old_keys = set()
+
     for r in range(2, ws.max_row + 1):
         old = norm(ws.cell(r, suno_col).value)
         new = norm(ws.cell(r, newsuno_col).value)
         if not old or not new:
             continue
+
+        bucket = old_to_news.setdefault(old, [])
+        if new not in bucket:
+            bucket.append(new)
+            if len(bucket) > 1:
+                multi_old_keys.add(old)
+
+        news_to_old[new] = old
+
+    return old_to_news, news_to_old, multi_old_keys
         old_to_news.setdefault(old, [])
         if new not in old_to_news[old]:
             old_to_news[old].append(new)
@@ -61,6 +74,90 @@ def clear_row(ws, row_idx: int, max_col: int):
         ws.cell(row_idx, c).value = None
 
 
+def _iter_non_empty_data_rows(ws, max_col: int):
+    for row_values in ws.iter_rows(
+        min_row=DATA_START_ROW,
+        max_row=ws.max_row,
+        min_col=1,
+        max_col=max_col,
+        values_only=True,
+    ):
+        if any(v is not None for v in row_values):
+            yield list(row_values)
+
+
+def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
+    title = ws.title
+    max_col = ws.max_column
+    headers = {norm(ws.cell(HEADER_ROW, c).value): c for c in range(1, max_col + 1)}
+
+    # Fast skip for irrelevant tabs.
+    if title not in ("API_CRS620MI_UpdSupplier", "API_CRS620MI_CopyTemplate") and "SUNO" not in headers:
+        return 0, 0
+
+    suno_idx = headers.get("SUNO", 0) - 1
+    suno_hash_idx = headers.get("SUNO#", 0) - 1
+    cfi1_idx = headers.get("CFI1", 0) - 1
+
+    data_rows = list(_iter_non_empty_data_rows(ws, max_col))
+    if not data_rows:
+        return 0, 0
+
+    new_rows = []
+    changed = False
+
+    for values in data_rows:
+        if title == "API_CRS620MI_UpdSupplier":
+            if cfi1_idx < 0 or suno_idx < 0:
+                new_rows.append(values)
+                continue
+
+            old = norm(values[cfi1_idx])
+            if old not in multi_old_keys:
+                new_rows.append(values)
+                continue
+
+            for new_suno in old_to_news.get(old, []):
+                row_copy = values.copy()
+                row_copy[suno_idx] = new_suno
+                new_rows.append(row_copy)
+            changed = True
+            continue
+
+        if suno_idx < 0:
+            new_rows.append(values)
+            continue
+
+        current_suno = norm(values[suno_idx])
+        old = news_to_old.get(current_suno, current_suno)
+
+        if old not in multi_old_keys:
+            new_rows.append(values)
+            continue
+
+        for new_suno in old_to_news.get(old, []):
+            row_copy = values.copy()
+            row_copy[suno_idx] = new_suno
+
+            if title == "API_CRS620MI_CopyTemplate" and suno_hash_idx >= 0:
+                row_copy[suno_hash_idx] = old
+            elif suno_hash_idx >= 0 and not norm(values[suno_hash_idx]):
+                row_copy[suno_hash_idx] = old
+
+            new_rows.append(row_copy)
+
+        changed = True
+
+    if not changed and len(new_rows) == len(data_rows):
+        return len(data_rows), len(new_rows)
+
+    original_last = ws.max_row
+    template_row = DATA_START_ROW if DATA_START_ROW <= ws.max_row else HEADER_ROW
+
+    for i, row_values in enumerate(new_rows, start=DATA_START_ROW):
+        # Existing rows already have style. Clone only for newly created rows.
+        if i > original_last:
+            clone_row_styles(ws, template_row, i, max_col)
 def process_sheet(ws, old_to_news, news_to_old):
     headers = {norm(ws.cell(HEADER_ROW, c).value): c for c in range(1, ws.max_column + 1)}
     title = ws.title
@@ -138,11 +235,20 @@ def process_sheet(ws, old_to_news, news_to_old):
 
 def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | None = None):
     resolved_output = output_path or target_path
+    old_to_news, news_to_old, multi_old_keys = build_maps(lookup_path)
+
+    # If there are no one-to-many mappings, nothing to expand.
+    if not multi_old_keys:
+        return []
+
     old_to_news, news_to_old = build_maps(lookup_path)
     wb = load_workbook(target_path)
 
     summary = []
     for ws in wb.worksheets:
+        if ws.title == "Sheet1" or not ws.title.startswith(CRS620MI_TAB_PREFIX):
+            continue
+        before, after = process_sheet(ws, old_to_news, news_to_old, multi_old_keys)
         if ws.title == "Sheet1":
             continue
         before, after = process_sheet(ws, old_to_news, news_to_old)

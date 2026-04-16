@@ -171,11 +171,20 @@ class MigrationRunner:
                     except Exception as expander_err:
                         if not silent:
                             print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped ({expander_err}).{Style.RESET_ALL}")
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
                     summary = expand_crs620mi_suno(output_path, lookup_path)
                     if not silent:
                         print(f"   [CRS620MI SUNO Expand] Applied translation_tbl/OLD_NEW_SUNO.xlsx to {out_name}")
                         for title, before, after in summary:
                             print(f"      - {title}: {before} -> {after}")
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
                 elif not silent:
                     print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped (missing file).{Style.RESET_ALL}")
             

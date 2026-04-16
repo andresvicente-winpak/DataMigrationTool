@@ -41,11 +41,20 @@ def build_maps(lookup_path: str):
         news_to_old[new] = old
 
     return old_to_news, news_to_old, multi_old_keys
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
         old_to_news.setdefault(old, [])
         if new not in old_to_news[old]:
             old_to_news[old].append(new)
         news_to_old[new] = old
     return old_to_news, news_to_old
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
 
 
 def clone_row_styles(ws, src_row: int, dst_row: int, max_col: int):
@@ -159,6 +168,9 @@ def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
         # Existing rows already have style. Clone only for newly created rows.
         if i > original_last:
             clone_row_styles(ws, template_row, i, max_col)
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
 def process_sheet(ws, old_to_news, news_to_old):
     headers = {norm(ws.cell(HEADER_ROW, c).value): c for c in range(1, ws.max_column + 1)}
     title = ws.title
@@ -225,6 +237,12 @@ def process_sheet(ws, old_to_news, news_to_old):
 
     for i, row_values in enumerate(new_rows, start=DATA_START_ROW):
         clone_row_styles(ws, template_row, i, max_col)
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         for c, value in enumerate(row_values, start=1):
             ws.cell(i, c).value = value
 
@@ -235,7 +253,16 @@ def process_sheet(ws, old_to_news, news_to_old):
 
 
 def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: Optional[str] = None):
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
 def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | None = None):
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     resolved_output = output_path or target_path
     old_to_news, news_to_old, multi_old_keys = build_maps(lookup_path)
 
@@ -243,7 +270,16 @@ def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | 
     if not multi_old_keys:
         return []
 
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
     old_to_news, news_to_old = build_maps(lookup_path)
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     wb = load_workbook(target_path)
 
     summary = []
@@ -251,9 +287,18 @@ def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | 
         if ws.title == "Sheet1" or not ws.title.startswith(CRS620MI_TAB_PREFIX):
             continue
         before, after = process_sheet(ws, old_to_news, news_to_old, multi_old_keys)
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
         if ws.title == "Sheet1":
             continue
         before, after = process_sheet(ws, old_to_news, news_to_old)
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         summary.append((ws.title, before, after))
 
     wb.save(resolved_output)

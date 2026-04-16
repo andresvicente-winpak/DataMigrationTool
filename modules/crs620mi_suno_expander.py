@@ -2,29 +2,42 @@ from __future__ import annotations
 
 from copy import copy
 from typing import Optional
+
 from openpyxl import load_workbook
 
 HEADER_ROW = 1
 DATA_START_ROW = 4
 CRS620MI_TAB_PREFIX = "API_CRS620MI_"
+UPD_SUPPLIER_TAB = "API_CRS620MI_UpdSupplier"
+COPY_TEMPLATE_TAB = "API_CRS620MI_CopyTemplate"
 
 
-def norm(v):
-    if v is None:
+def norm(value: object) -> str:
+    if value is None:
         return ""
-    return str(v).strip()
+    return str(value).strip()
 
 
-def build_maps(lookup_path: str):
+def build_maps(lookup_path: str) -> tuple[dict[str, list[str]], dict[str, str], set[str]]:
+    """Build lookup maps from translation table.
+
+    Returns:
+        - old_to_news: OLD SUNO -> list of NEW SUNO values
+        - news_to_old: NEW SUNO -> OLD SUNO
+        - multi_old_keys: OLD SUNO keys that map to more than one NEW SUNO
+    """
     wb = load_workbook(lookup_path, data_only=True)
     ws = wb[wb.sheetnames[0]]
-    headers = {norm(ws.cell(1, c).value): c for c in range(1, ws.max_column + 1)}
-    suno_col = headers["SUNO"]
-    newsuno_col = headers["NEWSUNO"]
 
-    old_to_news = {}
-    news_to_old = {}
-    multi_old_keys = set()
+    headers = {norm(ws.cell(1, c).value): c for c in range(1, ws.max_column + 1)}
+    suno_col = headers.get("SUNO")
+    newsuno_col = headers.get("NEWSUNO")
+    if not suno_col or not newsuno_col:
+        raise ValueError("Lookup table must include SUNO and NEWSUNO columns.")
+
+    old_to_news: dict[str, list[str]] = {}
+    news_to_old: dict[str, str] = {}
+    multi_old_keys: set[str] = set()
 
     for r in range(2, ws.max_row + 1):
         old = norm(ws.cell(r, suno_col).value)
@@ -41,23 +54,9 @@ def build_maps(lookup_path: str):
         news_to_old[new] = old
 
     return old_to_news, news_to_old, multi_old_keys
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-        old_to_news.setdefault(old, [])
-        if new not in old_to_news[old]:
-            old_to_news[old].append(new)
-        news_to_old[new] = old
-    return old_to_news, news_to_old
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+    
 
-
-def clone_row_styles(ws, src_row: int, dst_row: int, max_col: int):
+def clone_row_styles(ws, src_row: int, dst_row: int, max_col: int) -> None:
     for c in range(1, max_col + 1):
         src = ws.cell(src_row, c)
         dst = ws.cell(dst_row, c)
@@ -75,11 +74,12 @@ def clone_row_styles(ws, src_row: int, dst_row: int, max_col: int):
             dst.alignment = copy(src.alignment)
         if src.protection:
             dst.protection = copy(src.protection)
+
     if ws.row_dimensions[src_row].height is not None:
         ws.row_dimensions[dst_row].height = ws.row_dimensions[src_row].height
 
 
-def clear_row(ws, row_idx: int, max_col: int):
+def clear_row(ws, row_idx: int, max_col: int) -> None:
     for c in range(1, max_col + 1):
         ws.cell(row_idx, c).value = None
 
@@ -96,13 +96,18 @@ def _iter_non_empty_data_rows(ws, max_col: int):
             yield list(row_values)
 
 
-def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
+def process_sheet(
+    ws,
+    old_to_news: dict[str, list[str]],
+    news_to_old: dict[str, str],
+    multi_old_keys: set[str],
+) -> tuple[int, int]:
     title = ws.title
     max_col = ws.max_column
     headers = {norm(ws.cell(HEADER_ROW, c).value): c for c in range(1, max_col + 1)}
 
     # Fast skip for irrelevant tabs.
-    if title not in ("API_CRS620MI_UpdSupplier", "API_CRS620MI_CopyTemplate") and "SUNO" not in headers:
+    if title not in (UPD_SUPPLIER_TAB, COPY_TEMPLATE_TAB) and "SUNO" not in headers:
         return 0, 0
 
     suno_idx = headers.get("SUNO", 0) - 1
@@ -113,11 +118,11 @@ def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
     if not data_rows:
         return 0, 0
 
-    new_rows = []
+    new_rows: list[list[object]] = []
     changed = False
 
     for values in data_rows:
-        if title == "API_CRS620MI_UpdSupplier":
+        if title == UPD_SUPPLIER_TAB:
             if cfi1_idx < 0 or suno_idx < 0:
                 new_rows.append(values)
                 continue
@@ -149,7 +154,7 @@ def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
             row_copy = values.copy()
             row_copy[suno_idx] = new_suno
 
-            if title == "API_CRS620MI_CopyTemplate" and suno_hash_idx >= 0:
+            if title == COPY_TEMPLATE_TAB and suno_hash_idx >= 0:
                 row_copy[suno_hash_idx] = old
             elif suno_hash_idx >= 0 and not norm(values[suno_hash_idx]):
                 row_copy[suno_hash_idx] = old
@@ -168,81 +173,6 @@ def process_sheet(ws, old_to_news, news_to_old, multi_old_keys):
         # Existing rows already have style. Clone only for newly created rows.
         if i > original_last:
             clone_row_styles(ws, template_row, i, max_col)
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-def process_sheet(ws, old_to_news, news_to_old):
-    headers = {norm(ws.cell(HEADER_ROW, c).value): c for c in range(1, ws.max_column + 1)}
-    title = ws.title
-
-    data_rows = []
-    for r in range(DATA_START_ROW, ws.max_row + 1):
-        values = [ws.cell(r, c).value for c in range(1, ws.max_column + 1)]
-        if all(v is None for v in values):
-            continue
-        data_rows.append(values)
-
-    new_rows = []
-
-    for values in data_rows:
-        row = {norm(ws.cell(HEADER_ROW, c).value): values[c - 1] for c in range(1, ws.max_column + 1)}
-
-        if title == "API_CRS620MI_UpdSupplier":
-            key = norm(row.get("CFI1"))
-            matches = old_to_news.get(key, [])
-            if len(matches) > 1:
-                for new_suno in matches:
-                    row_copy = values.copy()
-                    row_copy[headers["SUNO"] - 1] = new_suno
-                    new_rows.append(row_copy)
-            else:
-                new_rows.append(values)
-            continue
-
-        if title == "API_CRS620MI_CopyTemplate":
-            current_suno = norm(row.get("SUNO"))
-            old = news_to_old.get(current_suno, current_suno)
-            matches = old_to_news.get(old, [])
-            if len(matches) > 1:
-                for new_suno in matches:
-                    row_copy = values.copy()
-                    if "SUNO" in headers:
-                        row_copy[headers["SUNO"] - 1] = new_suno
-                    if "SUNO#" in headers:
-                        row_copy[headers["SUNO#"] - 1] = old
-                    new_rows.append(row_copy)
-            else:
-                new_rows.append(values)
-            continue
-
-        if "SUNO" in headers:
-            key = norm(row.get("SUNO"))
-            old = news_to_old.get(key, key)
-            matches = old_to_news.get(old, [])
-            if len(matches) > 1:
-                for new_suno in matches:
-                    row_copy = values.copy()
-                    row_copy[headers["SUNO"] - 1] = new_suno
-                    if "SUNO#" in headers and not norm(row.get("SUNO#")):
-                        row_copy[headers["SUNO#"] - 1] = old
-                    new_rows.append(row_copy)
-            else:
-                new_rows.append(values)
-        else:
-            new_rows.append(values)
-
-    original_last = ws.max_row
-    max_col = ws.max_column
-    template_row = DATA_START_ROW if DATA_START_ROW <= ws.max_row else HEADER_ROW
-
-    for i, row_values in enumerate(new_rows, start=DATA_START_ROW):
-        clone_row_styles(ws, template_row, i, max_col)
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         for c, value in enumerate(row_values, start=1):
             ws.cell(i, c).value = value
 
@@ -252,17 +182,15 @@ def process_sheet(ws, old_to_news, news_to_old):
     return len(data_rows), len(new_rows)
 
 
-def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: Optional[str] = None):
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | None = None):
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
+def expand_crs620mi_suno(
+    target_path: str,
+    lookup_path: str,
+    output_path: Optional[str] = None,
+) -> list[tuple[str, int, int]]:
+    """Expand CRS620MI rows for one-to-many SUNO mappings.
+
+    Only tabs prefixed with API_CRS620MI_ are processed (excluding Sheet1).
+    """
     resolved_output = output_path or target_path
     old_to_news, news_to_old, multi_old_keys = build_maps(lookup_path)
 
@@ -270,35 +198,14 @@ def expand_crs620mi_suno(target_path: str, lookup_path: str, output_path: str | 
     if not multi_old_keys:
         return []
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-    old_to_news, news_to_old = build_maps(lookup_path)
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
     wb = load_workbook(target_path)
+    summary: list[tuple[str, int, int]] = []
 
-    summary = []
     for ws in wb.worksheets:
         if ws.title == "Sheet1" or not ws.title.startswith(CRS620MI_TAB_PREFIX):
             continue
+
         before, after = process_sheet(ws, old_to_news, news_to_old, multi_old_keys)
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-        if ws.title == "Sheet1":
-            continue
-        before, after = process_sheet(ws, old_to_news, news_to_old)
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
         summary.append((ws.title, before, after))
 
     wb.save(resolved_output)

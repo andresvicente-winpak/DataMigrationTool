@@ -170,7 +170,6 @@ class MigrationRunner:
                     except Exception as expander_err:
                         if not silent:
                             print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped ({expander_err}).{Style.RESET_ALL}")
-
                 elif not silent:
                     print(f"{Fore.YELLOW}   [Warning] CRS620MI SUNO expansion skipped (missing file).{Style.RESET_ALL}")
             

@@ -59,7 +59,47 @@ class SDTWriter:
             return f"'{s}"
 
         return s
+        
+    def _validate_written_rows(self, ws, sheet_name, start_row, valid_fields, expected_rows):
+        """
+        Validates that written worksheet values match the transformed rule output values.
+        """
+        mismatches = []
 
+        for row_offset, expected_row in enumerate(expected_rows):
+            excel_row = start_row + row_offset
+            for col_offset, expected_value in enumerate(expected_row, start=1):
+                actual_value = ws.cell(row=excel_row, column=col_offset).value
+                actual_str = "" if actual_value is None else str(actual_value).strip()
+                expected_str = "" if expected_value is None else str(expected_value).strip()
+                if actual_str != expected_str:
+                    mismatches.append({
+                        "row": excel_row,
+                        "column": valid_fields[col_offset - 1],
+                        "expected": expected_str,
+                        "actual": actual_str,
+                    })
+
+        if mismatches:
+            first = mismatches[0]
+            print(
+                f"{Fore.YELLOW}   [Rule Check] {sheet_name}: {len(mismatches)} cell mismatch(es). "
+                f"First mismatch row {first['row']} col {first['column']} (expected='{first['expected']}' actual='{first['actual']}').{Style.RESET_ALL}"
+            )
+            status = "warning"
+        else:
+            print(f"{Fore.GREEN}   [Rule Check] {sheet_name}: All generated cell values match rule output.{Style.RESET_ALL}")
+            status = "ok"
+
+        return {
+            "sheet": sheet_name,
+            "status": status,
+            "rows_checked": len(expected_rows),
+            "cells_checked": len(expected_rows) * len(valid_fields),
+            "mismatch_count": len(mismatches),
+            "mismatches": mismatches[:10],
+        }
+        
     def generate_from_template(
         self,
         template_path,
@@ -85,6 +125,8 @@ class SDTWriter:
 
             # 2. Open Workbook
             wb = load_workbook(output_path)
+            
+            validation_summary = []
 
             for sheet_name in target_sheets:
                 if sheet_name not in wb.sheetnames:
@@ -107,19 +149,28 @@ class SDTWriter:
                     if field in df_out.columns:
                         df_final[field] = df_out[field]
                     else:
-                        df_final[field] = ""
+                        df_final = df_out.reindex(columns=valid_fields, fill_value="")
 
                 # 6. Write to Sheet (Append to end)
                 data_rows = df_final[valid_fields].values.tolist()
+                start_row = ws.max_row + 1
+                normalized_rows = []
 
                 for row_data in data_rows:
                     clean_row = [self._norm_cell(x) for x in row_data]
                     ws.append(clean_row)
+                    normalized_rows.append(clean_row)
 
+                validation_summary.append(
+                    self._validate_written_rows(ws, sheet_name, start_row, valid_fields, normalized_rows)
+                )
+                
             wb.save(output_path)
 
             if not append_if_exists:
                 print(f"   -> Generated: {output_path}")
+                
+            return {"output_path": output_path, "sheets": validation_summary}
 
         except Exception as e:
             print(f"{Fore.RED}   [SDT WRITER ERROR] {e}{Style.RESET_ALL}")

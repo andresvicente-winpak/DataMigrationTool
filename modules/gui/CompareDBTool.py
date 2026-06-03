@@ -36,7 +36,7 @@ from modules.transform_engine import FilterEngine, TransformEngine
 
 
 APP_CONFIG_FILE = "db_compare_settings.json"
-STATIC_EXCEPTIONS_FILE = "/Exceptions_ComparissonDB.xlsx"
+STATIC_EXCEPTIONS_FILE = "Exceptions_ComparissonDB.xlsx"
 
 
 def app_folder() -> str:

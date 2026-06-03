@@ -26,8 +26,13 @@ from typing import Any, Iterable
 
 import customtkinter as ctk
 import pandas as pd
-import pyodbc
+try:
+    import pyodbc
+except ImportError:  # SQL Server validation UI can be imported without DB drivers installed.
+    pyodbc = None
 from tkinter import filedialog, messagebox, ttk
+
+from modules.transform_engine import FilterEngine, TransformEngine
 
 
 APP_CONFIG_FILE = "db_compare_settings.json"
@@ -99,7 +104,11 @@ class SqlServerConfig:
         return base + f"UID={self.username};PWD={self.password};"
 
 
-def get_connection(config: SqlServerConfig) -> pyodbc.Connection:
+def get_connection(config: SqlServerConfig):
+    if pyodbc is None:
+        raise ImportError(
+            "pyodbc is required for database validation. Install pyodbc and the Microsoft ODBC Driver for SQL Server."
+        )
     return pyodbc.connect(config.connection_string(), timeout=15)
 
 
@@ -232,7 +241,7 @@ def load_rules(rule_file_path: str) -> pd.DataFrame:
     excel_file = pd.ExcelFile(rule_file_path)
     sheet_name = "Rules" if "Rules" in excel_file.sheet_names else excel_file.sheet_names[0]
 
-    rules = pd.read_excel(rule_file_path, sheet_name=sheet_name, dtype=str).fillna("")
+    rules = pd.read_excel(rule_file_path, sheet_name=sheet_name, dtype=str, keep_default_na=False).fillna("")
     rules.columns = [str(col).strip().upper() for col in rules.columns]
 
     column_aliases = {
@@ -304,7 +313,7 @@ def load_exception_columns(exceptions_file_path: str) -> set[str]:
         else excel_file.sheet_names[0]
     )
 
-    exceptions = pd.read_excel(exceptions_file_path, sheet_name=sheet_name, dtype=str).fillna("")
+    exceptions = pd.read_excel(exceptions_file_path, sheet_name=sheet_name, dtype=str, keep_default_na=False).fillna("")
     exceptions.columns = [str(col).strip().upper() for col in exceptions.columns]
 
     column_aliases = {
@@ -388,75 +397,47 @@ def transform_source_with_rules(
     rules: pd.DataFrame,
     selected_rule_type: str = "All",
 ) -> pd.DataFrame:
-    source = normalize_dataframe(source_df)
-    output_rows: list[dict[str, Any]] = []
+    """Apply the shared migration rule engine to source rows before validation.
 
-    base_rules = rules[
-        ~rules["RULE_TYPE"].str.upper().isin(["IGNORE", "TODO"])
-        & (rules["TARGET_FIELD"].str.upper() != "_ROW_")
-    ].copy()
+    This intentionally reuses the same FilterEngine and TransformEngine used by
+    migrations, so DIRECT, CONST, MAP, and PYTHON rules behave the same in the
+    validation utility. MAP rules can therefore use the existing translation
+    workbooks referenced by RULE_VALUE.
+    """
+    source = normalize_dataframe(source_df)
+    working_rules = rules.copy()
+
+    for col in ["TARGET_FIELD", "SOURCE_FIELD", "RULE_TYPE", "RULE_VALUE"]:
+        if col not in working_rules.columns:
+            working_rules[col] = ""
+
+    working_rules["TARGET_FIELD"] = working_rules["TARGET_FIELD"].map(clean_rule_field_name)
+    working_rules["SOURCE_FIELD"] = working_rules["SOURCE_FIELD"].map(clean_rule_field_name)
+    working_rules["RULE_TYPE"] = working_rules["RULE_TYPE"].astype(str).str.strip().str.upper()
 
     selected_rule_type = selected_rule_type.strip().upper()
     if selected_rule_type and selected_rule_type != "ALL":
-        # Use the selected rule type for comparison columns, but always keep CUNO
-        # so rows can be matched between source and target.
-        active_rules = base_rules[
-                                    
-            (base_rules["RULE_TYPE"].str.upper() == selected_rule_type)
-            | (base_rules["TARGET_FIELD"].map(clean_rule_field_name) == "CUNO")
-            | (base_rules["SOURCE_FIELD"].map(clean_rule_field_name).isin(["CUNO", "OKCUNO"]))
-        ].copy()
-    else:
-        active_rules = base_rules
+        keep_key = (
+            (working_rules["TARGET_FIELD"].map(clean_rule_field_name) == "CUNO")
+            | (working_rules["SOURCE_FIELD"].map(clean_rule_field_name).isin(["CUNO", "OKCUNO"]))
+        )
+        keep_type = working_rules["RULE_TYPE"] == selected_rule_type
+        keep_filters = working_rules["RULE_TYPE"] == "FILTER"
+        working_rules = working_rules[keep_type | keep_key | keep_filters].copy()
 
-    for _, source_row in source.iterrows():
-        output_row: dict[str, Any] = {}
+    filtered_source = FilterEngine(working_rules).apply_filters(source)
+    transform_rules = working_rules[
+        ~working_rules["RULE_TYPE"].isin(["IGNORE", "TODO", "FILTER"])
+        & (working_rules["TARGET_FIELD"] != "_ROW_")
+        & (working_rules["TARGET_FIELD"] != "")
+    ].copy()
 
-        for _, rule in active_rules.iterrows():
-            target_field = clean_rule_field_name(rule["TARGET_FIELD"])
-            source_field = clean_rule_field_name(rule["SOURCE_FIELD"])
-            rule_type = str(rule["RULE_TYPE"]).strip().upper()
-            rule_value = rule.get("RULE_VALUE", "")
-            value = source_value(source_row, source_field)
+    transformed = TransformEngine(transform_rules, {}).process(filtered_source)
 
-            try:
-                if rule_type == "DIRECT":
-                    output_row[target_field] = value
-                elif rule_type == "CONST":
-                    output_row[target_field] = rule_value
-                elif rule_type == "PYTHON":
-                    output_row[target_field] = run_python_rule(rule_value, value, source_row)
-                elif rule_type == "FILTER":
-                    output_row[target_field] = value if apply_filter_rule(rule_value, value, source_row) else None
-                elif rule_type == "MAP":
-                    # Placeholder for external map lookup support.
-                    # For now, use source value so comparison can continue.
-                    output_row[target_field] = value
-                else:
-                    output_row[target_field] = value
-            except Exception as exc:
-                output_row[target_field] = f"RULE_ERROR: {exc}"
+    if "CUNO" not in transformed.columns or transformed["CUNO"].replace("", pd.NA).isna().all():
+        transformed["CUNO"] = filtered_source.apply(lambda row: source_value(row, "CUNO"), axis=1)
 
-        # Safety fallback: even if the rule file does not include CUNO in the
-        # selected rule type, copy it from source OKCUNO/CUNO so compare_tables
-        # always has a primary key.
-        if "CUNO" not in output_row or output_row.get("CUNO") in (None, ""):
-            output_row["CUNO"] = source_value(source_row, "CUNO")
-
-        output_rows.append(output_row)
-
-                                           
-
-                                                                  
-                                                                             
-                                                                                
-                                         
-                            
-                                                                                             
-             
-                                                        
-
-    return pd.DataFrame(output_rows)
+    return normalize_dataframe(transformed)
 
 
 def prepare_target_for_rule_comparison(target_df: pd.DataFrame) -> pd.DataFrame:
@@ -579,15 +560,9 @@ def compare_rule_based_customer_master(
     )
 
 
-class CompareApp(ctk.CTk):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.title("SQL Server Database Compare")
-        self.geometry("1200x720")
-
-        ctk.set_appearance_mode("System")
-        ctk.set_default_color_theme("blue")
+class DatabaseCompareHub(ctk.CTkFrame):
+    def __init__(self, master=None) -> None:
+        super().__init__(master)
 
         self.results_df = pd.DataFrame()
         self.table_values: list[str] = []
@@ -603,8 +578,8 @@ class CompareApp(ctk.CTk):
             "database": "di_trn_staging",
         }
         self.settings = load_app_settings()
-        self.default_rule_file = self.settings.get("rule_file_path", "CRS610MI.xlsx")
-        self.default_exceptions_file = self.settings.get("exceptions_file_path", "comparison_exceptions.xlsx")
+        self.default_rule_file = self.settings.get("rule_file_path", self._default_rule_file())
+        self.default_exceptions_file = self.settings.get("exceptions_file_path", "")
         self.default_company = self.settings.get("target_company", "All")
         self.default_target_object = "dbo.OCUSMA"
         self.connections_visible = False
@@ -701,9 +676,6 @@ class CompareApp(ctk.CTk):
         ).grid(row=2, column=6, padx=8)
         ctk.CTkButton(controls, text="Export Excel", command=self.export_results).grid(row=2, column=7, padx=8)
 
-        self.load_rule_type_options(show_errors=False)
-        self.after(600, self.auto_load_startup_options)
-
         self.status_label = ctk.CTkLabel(self, text="Ready")
         self.status_label.grid(row=2, column=0, columnspan=2, sticky="w", padx=16, pady=4)
 
@@ -725,6 +697,9 @@ class CompareApp(ctk.CTk):
         x_scroll = ttk.Scrollbar(table_frame, orient="horizontal", command=self.tree.xview)
         x_scroll.grid(row=1, column=0, sticky="ew")
         self.tree.configure(xscrollcommand=x_scroll.set)
+
+        self.load_rule_type_options(show_errors=False)
+        self.after(600, self.auto_load_startup_options)
 
     def _server_frame(self, title: str, column: int) -> ctk.CTkFrame:
         frame = ctk.CTkFrame(self)
@@ -895,18 +870,38 @@ class CompareApp(ctk.CTk):
             f"Exceptions file not found: {exceptions_file}. Put it beside this script, use Browse, or clear it."
         )
 
+    def _default_rule_file(self) -> str:
+        default_path = os.path.join("config", "rules", "CRS610MI.xlsx")
+        if os.path.exists(default_path):
+            return default_path
+
+        rule_dir = os.path.join("config", "rules")
+        if os.path.isdir(rule_dir):
+            candidates = sorted(
+                os.path.join(rule_dir, name)
+                for name in os.listdir(rule_dir)
+                if name.lower().endswith(".xlsx") and not name.startswith("~$")
+            )
+            if candidates:
+                return candidates[0]
+
+        return "CRS610MI.xlsx"
+
     def _rule_file_path(self) -> str:
         rule_file = self.rule_file_entry.get().strip()
         if os.path.exists(rule_file):
             return rule_file
 
-        script_folder = os.path.dirname(os.path.abspath(__file__))
-        local_path = os.path.join(script_folder, rule_file)
-        if os.path.exists(local_path):
-            return local_path
+        search_paths = [
+            os.path.join("config", "rules", rule_file),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), rule_file),
+        ]
+        for path in search_paths:
+            if os.path.exists(path):
+                return path
 
         raise FileNotFoundError(
-            f"Rule file not found: {rule_file}. Put it beside this script or use Browse."
+            f"Rule file not found: {rule_file}. Use Browse or place it in config/rules."
         )
 
     def _set_status(self, text: str) -> None:
@@ -1022,6 +1017,18 @@ class CompareApp(ctk.CTk):
 
         self.results_df.to_excel(file_path, index=False)
         messagebox.showinfo("Export Complete", f"Saved results to:\n{file_path}")
+
+
+class CompareApp(ctk.CTk):
+    def __init__(self) -> None:
+        super().__init__()
+        self.title("SQL Server Database Compare")
+        self.geometry("1200x720")
+        ctk.set_appearance_mode("System")
+        ctk.set_default_color_theme("blue")
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        DatabaseCompareHub(self).grid(row=0, column=0, sticky="nsew")
 
 
 if __name__ == "__main__":

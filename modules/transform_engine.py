@@ -9,6 +9,35 @@ except ImportError:
     hooks = None
 
 
+def resolve_source_column(field_name, src_map):
+    """Resolve a rule source field against exact and two-character-prefixed columns.
+
+    Rule files often contain M3 field names (for example CUNO, PYCD, TEDL),
+    while raw M3 database tables include a two-character table prefix
+    (for example OKCUNO, OKPYCD, OKTEDL). Keep exact matches first, prefer
+    the OCUSMA OK prefix, and then accept any exact two-character prefix.
+    """
+    f = str(field_name).strip().upper()
+    if not f:
+        return None
+    if f in src_map:
+        return src_map[f]
+
+    ok_prefixed = f"OK{f}"
+    if ok_prefixed in src_map:
+        return src_map[ok_prefixed]
+
+    prefixed_matches = [
+        c for c in src_map
+        if len(c) == len(f) + 2
+        and c.endswith(f)
+        and c[:2].isalpha()
+    ]
+    if prefixed_matches:
+        return src_map[sorted(prefixed_matches)[0]]
+    return None
+
+
 class TransformEngine:
     def __init__(self, rules_df, lookups):
         self.rules = rules_df
@@ -57,16 +86,7 @@ class TransformEngine:
         return path, key_cols, val_col
 
     def _resolve_source_col(self, field_name, src_map):
-        f = str(field_name).strip().upper()
-        if not f:
-            return None
-        if f in src_map:
-            return src_map[f]
-
-        match = next((c for c in src_map if c.endswith(f) and len(c) == 6), None)
-        if match:
-            return src_map[match]
-        return None
+        return resolve_source_column(field_name, src_map)
 
     def _build_map_fallback_series(self, df_source, source_fields, key_cols, src_map, target_col):
         """
@@ -200,12 +220,9 @@ class TransformEngine:
 
             try:
                 if rule_type == 'DIRECT':
-                    if r_src in src_map:
-                        df_target[target_col] = df_source[src_map[r_src]]
-                    else:
-                        match = next((c for c in src_map if c.endswith(r_src) and len(c) == 6), None)
-                        if match:
-                            df_target[target_col] = df_source[src_map[match]]
+                    col_name = self._resolve_source_col(r_src, src_map)
+                    if col_name:
+                        df_target[target_col] = df_source[col_name]
 
                 elif rule_type == 'CONST':
                     df_target[target_col] = self._normalize_const_value(r_val)
@@ -291,13 +308,7 @@ class TransformEngine:
                         df_target[target_col] = mapped_series
 
                 elif rule_type == 'PYTHON':
-                    col_name = None
-                    if r_src in src_map:
-                        col_name = src_map[r_src]
-                    else:
-                        match = next((c for c in src_map if c.endswith(r_src) and len(c) == 6), None)
-                        if match:
-                            col_name = src_map[match]
+                    col_name = self._resolve_source_col(r_src, src_map)
 
                     if col_name:
                         df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
@@ -328,13 +339,7 @@ class FilterEngine:
             source_field = str(rule.get('SOURCE_FIELD', '')).strip().upper()
             condition_code = str(rule.get('RULE_VALUE', '')).strip()
 
-            col_name = None
-            if source_field in src_map:
-                col_name = src_map[source_field]
-            else:
-                match = next((c for c in src_map if c.endswith(source_field) and len(c) == 6), None)
-                if match:
-                    col_name = src_map[match]
+            col_name = resolve_source_column(source_field, src_map)
 
             def check_row(row):
                 try:

@@ -271,6 +271,51 @@ def test_19d_map_lookup_fallback_to_source_when_rule_value_blank():
     res = eng.process(df_s)
     assert list(res['RES']) == ['OLD', 'UNMAPPED']
 
+
+def test_19e_transform_source_resolution_for_prefixed_direct_map_python_and_filter():
+    from modules.transform_engine import FilterEngine
+
+    map_path = f"{CONF_DIR}/payment_method_translation.csv"
+    pd.DataFrame({'OLD': ['CASH'], 'NEW': ['CSH']}).to_csv(map_path, index=False)
+
+    df_s = pd.DataFrame({'OKPYCD': ['CASH'], 'OKSTAT': ['20']})
+    df_r = pd.DataFrame([
+        {'TARGET_FIELD': 'DIRECT_PYCD', 'RULE_TYPE': 'DIRECT', 'SOURCE_FIELD': 'PYCD', 'RULE_VALUE': ''},
+        {'TARGET_FIELD': 'MAP_PYCD', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'PYCD', 'RULE_VALUE': f'{map_path}|OLD|NEW'},
+        {'TARGET_FIELD': 'PYTHON_STAT', 'RULE_TYPE': 'PYTHON', 'SOURCE_FIELD': 'STAT', 'RULE_VALUE': "return str(source)"},
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['DIRECT_PYCD'] == 'CASH'
+    assert res.iloc[0]['MAP_PYCD'] == 'CSH'
+    assert res.iloc[0]['PYTHON_STAT'] == '20'
+
+    filter_rules = pd.DataFrame([{
+        'TARGET_FIELD': '_ROW_', 'RULE_TYPE': 'FILTER', 'SOURCE_FIELD': 'STAT', 'RULE_VALUE': "source == '20'"
+    }])
+    filtered = FilterEngine(filter_rules).apply_filters(df_s)
+    assert len(filtered) == 1
+
+
+def test_19f_composite_map_resolves_prefixed_source_columns():
+    map_path = f"{CONF_DIR}/customer_terms_delivery_translation.csv"
+    pd.DataFrame({
+        'OLD_PYCD': ['CASH'],
+        'OLD_TEDL': ['GROUND'],
+        'NEW': ['CASH-GROUND'],
+    }).to_csv(map_path, index=False)
+
+    df_s = pd.DataFrame({'OKPYCD': ['CASH'], 'OKTEDL': ['GROUND']})
+    df_r = pd.DataFrame([{
+        'TARGET_FIELD': 'COMBINED',
+        'RULE_TYPE': 'MAP',
+        'SOURCE_FIELD': 'PYCD,TEDL',
+        'RULE_VALUE': f'{map_path}|OLD_PYCD,OLD_TEDL|NEW',
+    }])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['COMBINED'] == 'CASH-GROUND'
+
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"
     df = pd.DataFrame([

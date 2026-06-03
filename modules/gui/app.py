@@ -12,6 +12,7 @@ from modules.gui.tab_config import ConfigHub
 from modules.gui.tab_rules import RulesHub
 from modules.gui.tab_utils import UtilitiesHub
 from modules.gui.tab_sync import SyncHub 
+from modules.gui.CompareDBTool import DatabaseCompareHub
 from modules.gui.utils import TextRedirector, bind_context_help # <--- IMPORTED HERE
 
 ctk.set_appearance_mode("Dark")
@@ -54,6 +55,10 @@ class M3MigrationApp(ctk.CTk):
         self.btn_sync.pack(fill="x", padx=10, pady=5)
         bind_context_help(self.btn_sync, "Go to Sync Hub.\n\nCompare and merge rule changes from other users/files.")
 
+        self.btn_validate = ctk.CTkButton(self.sidebar, text="  DB Validation  ", height=40, anchor="w", fg_color="transparent", border_width=1, command=lambda: self.select_frame("ValidateHub"))
+        self.btn_validate.pack(fill="x", padx=10, pady=5)
+        bind_context_help(self.btn_validate, "Go to DB Validation.\n\nCompare source and target SQL Server data using the same migration rules and translation files.")
+
         # Help Button (Pushed to bottom)
         ctk.CTkFrame(self.sidebar, fg_color="transparent").pack(fill="both", expand=True) # Spacer
         self.btn_help = ctk.CTkButton(self.sidebar, text="  📘 User Guide  ", height=40, anchor="w", fg_color="transparent", text_color="#AAAAAA", hover_color="#333333", command=self.open_documentation)
@@ -74,6 +79,7 @@ class M3MigrationApp(ctk.CTk):
         self.frames["RulesHub"] = RulesHub(self.main_area)
         self.frames["UtilsHub"] = UtilitiesHub(self.main_area)
         self.frames["SyncHub"] = SyncHub(self.main_area)
+        self.frames["ValidateHub"] = DatabaseCompareHub(self.main_area)
 
         # PANE 2: CONSOLE AREA
         self.console_frame = ctk.CTkFrame(self.splitter, corner_radius=0, fg_color="#1A1A1A")
@@ -108,6 +114,7 @@ class M3MigrationApp(ctk.CTk):
         self.btn_rule.configure(fg_color="transparent")
         self.btn_util.configure(fg_color="transparent")
         self.btn_sync.configure(fg_color="transparent")
+        self.btn_validate.configure(fg_color="transparent")
 
         # Highlight Selected (Solid Fill)
         if name == "MigrateHub": self.btn_mig.configure(fg_color=["#3B8ED0", "#1F6AA5"])
@@ -115,6 +122,7 @@ class M3MigrationApp(ctk.CTk):
         elif name == "RulesHub": self.btn_rule.configure(fg_color=["#3B8ED0", "#1F6AA5"])
         elif name == "UtilsHub": self.btn_util.configure(fg_color=["#3B8ED0", "#1F6AA5"])
         elif name == "SyncHub": self.btn_sync.configure(fg_color=["#3B8ED0", "#1F6AA5"])
+        elif name == "ValidateHub": self.btn_validate.configure(fg_color=["#3B8ED0", "#1F6AA5"])
 
         # Frame Switching
         for f in self.frames.values(): 

@@ -101,8 +101,10 @@ class TransformEngine:
                     path = os.path.join('config', path)
                 elif os.path.exists(os.path.join('raw_data', path)):
                     path = os.path.join('raw_data', path)
+                elif os.path.exists(os.path.join('translation_tbl', path)):
+                    path = os.path.join('translation_tbl', path)
                 else:
-                    print(f"{Fore.YELLOW}   [MAP WARNING] Map file not found. Tried: '{original_path}', 'config/{original_path}', 'raw_data/{original_path}'.{Style.RESET_ALL}")
+                    print(f"{Fore.YELLOW}   [MAP WARNING] Map file not found. Tried: '{original_path}', 'config/{original_path}', 'raw_data/{original_path}', 'translation_tbl/{original_path}'.{Style.RESET_ALL}")
                     return None
 
             print(f"{Fore.CYAN}   [MAP DEBUG] Loading map: {path} | keys={key_cols} | value={val_col}{Style.RESET_ALL}")

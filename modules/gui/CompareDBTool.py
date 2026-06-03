@@ -36,6 +36,7 @@ from modules.transform_engine import FilterEngine, TransformEngine
 
 
 APP_CONFIG_FILE = "db_compare_settings.json"
+STATIC_EXCEPTIONS_FILE = "Exceptions_ComparissonDB.xlsx"
 
 
 def app_folder() -> str:
@@ -166,8 +167,8 @@ def read_target_customer_master(
     business_unit: str = "All",
     company: str = "All",
 ) -> pd.DataFrame:
-    """Read target Customer Master from dbo.OCUSMA, optionally filtered by OKCONO."""
-    where_clauses = []
+    """Read active target Customer Master from dbo.OCUSMA, optionally filtered by OKCONO."""
+    where_clauses = ["OKSTAT = '20'"]
 
     company = str(company).strip()
     if company and company.upper() != "ALL":
@@ -237,6 +238,12 @@ def clean_rule_field_name(field_name: str) -> str:
     return field
 
 
+def clean_source_field_names(source_field: str) -> str:
+    """Clean SOURCE_FIELD values while preserving comma-separated MAP keys."""
+    fields = [clean_rule_field_name(part) for part in str(source_field).split(",")]
+    return ",".join(field for field in fields if field)
+
+
 def load_rules(rule_file_path: str) -> pd.DataFrame:
     excel_file = pd.ExcelFile(rule_file_path)
     sheet_name = "Rules" if "Rules" in excel_file.sheet_names else excel_file.sheet_names[0]
@@ -264,7 +271,7 @@ def load_rules(rule_file_path: str) -> pd.DataFrame:
         if col not in rules.columns:
             rules[col] = ""
 
-    rules["SOURCE_FIELD"] = rules["SOURCE_FIELD"].map(clean_rule_field_name)
+    rules["SOURCE_FIELD"] = rules["SOURCE_FIELD"].map(clean_source_field_names)
     rules["TARGET_FIELD"] = rules["TARGET_FIELD"].map(clean_rule_field_name)
     rules["RULE_TYPE"] = rules["RULE_TYPE"].str.strip().str.upper()
 
@@ -412,7 +419,7 @@ def transform_source_with_rules(
             working_rules[col] = ""
 
     working_rules["TARGET_FIELD"] = working_rules["TARGET_FIELD"].map(clean_rule_field_name)
-    working_rules["SOURCE_FIELD"] = working_rules["SOURCE_FIELD"].map(clean_rule_field_name)
+    working_rules["SOURCE_FIELD"] = working_rules["SOURCE_FIELD"].map(clean_source_field_names)
     working_rules["RULE_TYPE"] = working_rules["RULE_TYPE"].astype(str).str.strip().str.upper()
 
     selected_rule_type = selected_rule_type.strip().upper()
@@ -579,7 +586,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
         }
         self.settings = load_app_settings()
         self.default_rule_file = self.settings.get("rule_file_path", self._default_rule_file())
-        self.default_exceptions_file = self.settings.get("exceptions_file_path", "")
+        self.default_exceptions_file = STATIC_EXCEPTIONS_FILE
         self.default_company = self.settings.get("target_company", "All")
         self.default_target_object = "dbo.OCUSMA"
         self.connections_visible = False
@@ -655,9 +662,8 @@ class DatabaseCompareHub(ctk.CTkFrame):
         ctk.CTkLabel(controls, text="Exceptions File").grid(row=3, column=0, sticky="e", padx=8)
         self.exceptions_file_entry = ctk.CTkEntry(controls, width=240)
         self.exceptions_file_entry.insert(0, self.default_exceptions_file)
-        self.exceptions_file_entry.grid(row=3, column=1, columnspan=3, sticky="ew", padx=8, pady=8)
-        ctk.CTkButton(controls, text="Browse", command=self.browse_exceptions_file).grid(row=3, column=4, padx=8)
-        ctk.CTkButton(controls, text="Clear Exceptions", command=self.clear_exceptions_file).grid(row=3, column=5, padx=8)
+        self.exceptions_file_entry.configure(state="disabled")
+        self.exceptions_file_entry.grid(row=3, column=1, columnspan=4, sticky="ew", padx=8, pady=8)
 
         # Source filter is fixed internally for Customer Master and hidden from the main screen.
         self.table_info_entry = ctk.CTkEntry(controls, width=500)
@@ -833,42 +839,9 @@ class DatabaseCompareHub(ctk.CTkFrame):
         save_app_settings(self.settings)
         self.load_rule_type_options(show_errors=True)
 
-    def browse_exceptions_file(self) -> None:
-        file_path = filedialog.askopenfilename(
-            title="Select comparison exceptions file",
-            filetypes=[("Excel files", "*.xlsx")],
-        )
-        if not file_path:
-            return
-
-        self.exceptions_file_entry.delete(0, "end")
-        self.exceptions_file_entry.insert(0, file_path)
-
-        self.settings["exceptions_file_path"] = file_path
-        save_app_settings(self.settings)
-
-    def clear_exceptions_file(self) -> None:
-        self.exceptions_file_entry.delete(0, "end")
-        self.settings["exceptions_file_path"] = ""
-        save_app_settings(self.settings)
-        self._set_status("Exceptions file cleared. All common columns will be compared.")
-
     def _exceptions_file_path(self) -> str:
-        exceptions_file = self.exceptions_file_entry.get().strip()
-        if not exceptions_file:
-            return ""
-
-        if os.path.exists(exceptions_file):
-            return exceptions_file
-
-        script_folder = os.path.dirname(os.path.abspath(__file__))
-        local_path = os.path.join(script_folder, exceptions_file)
-        if os.path.exists(local_path):
-            return local_path
-
-        raise FileNotFoundError(
-            f"Exceptions file not found: {exceptions_file}. Put it beside this script, use Browse, or clear it."
-        )
+        """Return the fixed comparison exceptions workbook path."""
+        return STATIC_EXCEPTIONS_FILE
 
     def _default_rule_file(self) -> str:
         default_path = os.path.join("config", "rules", "CRS610MI.xlsx")

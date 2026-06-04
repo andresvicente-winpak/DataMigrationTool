@@ -650,7 +650,6 @@ def compare_rule_based_customer_master(
     primary_key: str | Iterable[str] = "CUNO",
     selected_rule_type: str = "All",
     selected_scope: str = "All",
-    table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
     transformed_source = transform_source_with_rules(
@@ -660,7 +659,20 @@ def compare_rule_based_customer_master(
         selected_scope=selected_scope,
     )
 
-    normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
+                                                                                  
+                                                                   
+                            
+                                            
+                                                          
+                                       
+                                                             
+                                                  
+                       
+             
+             
+                                                           
+
+    normalized_target = prepare_target_for_rule_comparison(target_df)
     return compare_tables(
         transformed_source,
         normalized_target,
@@ -1075,7 +1087,6 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     primary_key=primary_key,
                     selected_rule_type=selected_rule_type,
                     selected_scope=business_unit,
-                    table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
                 )
 

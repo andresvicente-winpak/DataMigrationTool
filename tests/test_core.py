@@ -499,3 +499,48 @@ def test_29_crs620mi_suno_expander_basic():
 
     assert upd_ws.cell(4, 2).value == 'N100A'
     assert upd_ws.cell(5, 2).value == 'N100B'
+
+
+def test_30_compare_tables_normalizes_primary_key_before_matching_rows():
+    from modules.gui.CompareDBTool import compare_tables
+
+    source = pd.DataFrame({
+        "CUNO": [40004],
+        "CUNM": ["Source customer name"],
+    })
+    target = pd.DataFrame({
+        "CUNO": ["40004"],
+        "CUNM": ["Target customer name"],
+    })
+
+    result = compare_tables(source, target, primary_key="CUNO")
+
+    assert result.to_dict("records") == [{
+        "Issue": "Different value",
+        "Customer": "40004",
+        "Column": "CUNM",
+        "Source Value": "Source customer name",
+        "Target Value": "Target customer name",
+    }]
+
+
+def test_31_compare_tables_normalizes_decimal_primary_key_before_matching_rows():
+    from modules.gui.CompareDBTool import compare_tables
+
+    source = pd.DataFrame({
+        "CUNO": [40004.0],
+        "CUNM": ["Same customer name"],
+        "PHNO": ["111"],
+    })
+    target = pd.DataFrame({
+        "CUNO": ["40004"],
+        "CUNM": ["Same customer name"],
+        "PHNO": ["222"],
+    })
+
+    result = compare_tables(source, target, primary_key="CUNO")
+
+    assert len(result) == 1
+    assert result.iloc[0]["Issue"] == "Different value"
+    assert result.iloc[0]["Customer"] == "40004"
+    assert result.iloc[0]["Column"] == "PHNO"

@@ -464,6 +464,25 @@ def prepare_target_for_rule_comparison(target_df: pd.DataFrame) -> pd.DataFrame:
     return target.rename(columns=rename_map)
 
 
+def prepare_indexed_compare_frame(df: pd.DataFrame, primary_key: str, frame_name: str) -> pd.DataFrame:
+    """Normalize a comparison frame and index it by a normalized primary key.
+
+    SQL Server and pandas can represent the same customer number as different
+    Python types (for example ``40004``, ``40004.0``, and ``"40004"``). If
+    the raw values are used as the index, matching customers are treated as
+    missing on one side and their column values are never compared.
+    """
+    normalized = normalize_dataframe(df)
+
+    if primary_key not in normalized.columns:
+        raise ValueError(f"Primary key {primary_key} was not found in {frame_name} table.")
+
+    indexed = normalized.copy()
+    indexed[primary_key] = indexed[primary_key].map(normalize_compare_value)
+    indexed = indexed[indexed[primary_key] != ""]
+    return indexed.drop_duplicates(subset=[primary_key], keep="first").set_index(primary_key)
+
+
 def compare_tables(
     source_df: pd.DataFrame,
     target_df: pd.DataFrame,
@@ -473,16 +492,8 @@ def compare_tables(
     ignored = {col.upper() for col in (ignored_columns or [])}
     pk = primary_key.upper()
 
-    left = normalize_dataframe(source_df)
-    right = normalize_dataframe(target_df)
-
-    if pk not in left.columns:
-        raise ValueError(f"Primary key {pk} was not found in transformed source table.")
-    if pk not in right.columns:
-        raise ValueError(f"Primary key {pk} was not found in target table.")
-
-    left = left.drop_duplicates(subset=[pk], keep="first").set_index(pk)
-    right = right.drop_duplicates(subset=[pk], keep="first").set_index(pk)
+    left = prepare_indexed_compare_frame(source_df, pk, "transformed source")
+    right = prepare_indexed_compare_frame(target_df, pk, "target")
 
     left_keys = set(left.index)
     right_keys = set(right.index)

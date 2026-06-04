@@ -403,6 +403,7 @@ def transform_source_with_rules(
     source_df: pd.DataFrame,
     rules: pd.DataFrame,
     selected_rule_type: str = "All",
+    selected_scope: str = "All",
 ) -> pd.DataFrame:
     """Apply the shared migration rule engine to source rows before validation.
 
@@ -421,6 +422,23 @@ def transform_source_with_rules(
     working_rules["TARGET_FIELD"] = working_rules["TARGET_FIELD"].map(clean_rule_field_name)
     working_rules["SOURCE_FIELD"] = working_rules["SOURCE_FIELD"].map(clean_source_field_names)
     working_rules["RULE_TYPE"] = working_rules["RULE_TYPE"].astype(str).str.strip().str.upper()
+
+    if "SCOPE" not in working_rules.columns:
+        working_rules["SCOPE"] = ""
+    working_rules["SCOPE"] = working_rules["SCOPE"].astype(str).str.strip().str.upper()
+
+    selected_scope = str(selected_scope or "All").strip().upper()
+    # Rule files can contain one FILTER row per business-unit scope. Applying
+    # all of them at once removes valid rows; keep only the selected scope.
+    scoped_filters = working_rules["RULE_TYPE"] == "FILTER"
+    if selected_scope and selected_scope != "ALL":
+        scoped_filters &= working_rules["SCOPE"].isin(["", "GLOBAL", selected_scope])
+    else:
+        scoped_filters &= working_rules["SCOPE"].isin(["", "GLOBAL"])
+
+    working_rules = working_rules[
+        (working_rules["RULE_TYPE"] != "FILTER") | scoped_filters
+    ].copy()
 
     selected_rule_type = selected_rule_type.strip().upper()
     if selected_rule_type and selected_rule_type != "ALL":
@@ -552,9 +570,15 @@ def compare_rule_based_customer_master(
     rules: pd.DataFrame,
     primary_key: str = "CUNO",
     selected_rule_type: str = "All",
+    selected_scope: str = "All",
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
-    transformed_source = transform_source_with_rules(source_df, rules, selected_rule_type)
+    transformed_source = transform_source_with_rules(
+        source_df,
+        rules,
+        selected_rule_type=selected_rule_type,
+        selected_scope=selected_scope,
+    )
 
                                                                                   
                                                                    
@@ -951,6 +975,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     rules,
                     primary_key="CUNO",
                     selected_rule_type=selected_rule_type,
+                    selected_scope=business_unit,
                     ignored_columns=ignored_columns,
                 )
 

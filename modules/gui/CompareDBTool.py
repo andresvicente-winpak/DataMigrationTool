@@ -650,7 +650,6 @@ def compare_rule_based_customer_master(
     primary_key: str | Iterable[str] = "CUNO",
     selected_rule_type: str = "All",
     selected_scope: str = "All",
-    table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
     transformed_source = transform_source_with_rules(
@@ -660,7 +659,20 @@ def compare_rule_based_customer_master(
         selected_scope=selected_scope,
     )
 
-    normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
+                                                                                  
+                                                                   
+                            
+                                            
+                                                          
+                                       
+                                                             
+                                                  
+                       
+             
+             
+                                                           
+
+    normalized_target = prepare_target_for_rule_comparison(target_df)
     return compare_tables(
         transformed_source,
         normalized_target,
@@ -1045,12 +1057,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     ignored_columns = load_exception_columns(exceptions_file_path)
 
                 if selected_module == "Customer Master":
-                    source_table = "dbo.OCUSMA"
-                    target_table = "dbo.OCUSMA"
-                    self._set_status(
-                        f"Using tables: Source={source_table}, Target={target_table}. "
-                        f"Reading source Customer Master for Business Unit: {business_unit}..."
-                    )
+                    self._set_status(f"Reading source Customer Master for Business Unit: {business_unit}...")
                     source_df = read_customer_master(source_config, business_unit)
 
                     self._set_status(
@@ -1061,16 +1068,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     primary_key = "CUNO"
                     table_prefixes = ("OK",)
                 elif selected_module == "Customer Addresses":
-                    source_table = "dbo.OCUSAD"
-                    target_table = "dbo.OCUSAD"
-                    self._set_status(
-                        f"Using tables: Source={source_table}, Target={target_table}. "
-                        f"Reading source Customer Addresses for Business Unit: {business_unit}..."
-                    )
+                    self._set_status(f"Reading source Customer Addresses for Business Unit: {business_unit}...")
                     source_df = read_customer_addresses(source_config, business_unit)
 
                     self._set_status(
-                        f"Using tables: Source={source_table}, Target={target_table}. "
                         f"Reading target Customer Addresses for Business Unit: {business_unit}, Company: {selected_company}..."
                     )
                     target_df = read_target_customer_addresses(target_config, business_unit, selected_company)
@@ -1090,7 +1091,6 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     primary_key=primary_key,
                     selected_rule_type=selected_rule_type,
                     selected_scope=business_unit,
-                    table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
                 )
 
@@ -1106,10 +1106,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Issues found: {len(self.results_df):,}."
                     )
                 )
-                self._set_status(
-                    f"{selected_module} comparison complete. "
-                    f"Tables used: Source={source_table}, Target={target_table}."
-                )
+                self._set_status(f"{selected_module} comparison complete.")
             except Exception as exc:
                 self._set_status("Comparison failed.")
                 messagebox.showerror("Compare Error", str(exc))

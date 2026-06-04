@@ -650,6 +650,7 @@ def compare_rule_based_customer_master(
     primary_key: str | Iterable[str] = "CUNO",
     selected_rule_type: str = "All",
     selected_scope: str = "All",
+    table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
     transformed_source = transform_source_with_rules(
@@ -659,6 +660,7 @@ def compare_rule_based_customer_master(
         selected_scope=selected_scope,
     )
 
+    normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
                                                                                   
                                                                    
                             
@@ -702,7 +704,6 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.default_rule_file = self.settings.get("rule_file_path", self._default_rule_file())
         self.default_exceptions_file = STATIC_EXCEPTIONS_FILE
         self.default_company = self.settings.get("target_company", "All")
-        self.default_target_object = "dbo.OCUSMA"
         self.connections_visible = False
 
         self._build_ui()
@@ -755,16 +756,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.company_dropdown.grid(row=0, column=4, sticky="ew", padx=8, pady=8)
         # Companies are loaded automatically at startup.
 
-        ctk.CTkLabel(controls, text="Target Table").grid(row=1, column=2, sticky="e", padx=8)
-        self.target_object_entry = ctk.CTkEntry(controls, width=180)
-        self.target_object_entry.insert(0, self.default_target_object)
-        self.target_object_entry.configure(state="disabled")
-        self.target_object_entry.grid(row=1, column=3, sticky="ew", padx=8)
-
-        ctk.CTkLabel(controls, text="Rule File").grid(row=1, column=4, sticky="e", padx=8)
+        ctk.CTkLabel(controls, text="Rule File").grid(row=1, column=2, sticky="e", padx=8)
         self.rule_file_entry = ctk.CTkEntry(controls, width=240)
         self.rule_file_entry.insert(0, self.default_rule_file)
-        self.rule_file_entry.grid(row=1, column=5, sticky="ew", padx=8)
+        self.rule_file_entry.grid(row=1, column=3, columnspan=3, sticky="ew", padx=8)
         ctk.CTkButton(controls, text="Browse", command=self.browse_rule_file).grid(row=1, column=6, padx=8)
 
         ctk.CTkLabel(controls, text="Rule Type").grid(row=2, column=0, sticky="e", padx=8)
@@ -1012,6 +1007,14 @@ class DatabaseCompareHub(ctk.CTkFrame):
 
         return base
 
+    def _comparison_table_config(self, selected_module: str) -> tuple[str, str, str | list[str], tuple[str, ...]]:
+        if selected_module == "Customer Addresses":
+            return "dbo.OCUSAD", "dbo.OCUSAD", ["CUNO", "ADRT", "ADID"], ("OP",)
+        if selected_module == "Customer Master":
+            return "dbo.OCUSMA", "dbo.OCUSMA", "CUNO", ("OK",)
+        raise ValueError(f"Unknown module: {selected_module}")
+
+    def _module_changed(self) -> None:
     def _set_target_object(self, target_object: str) -> None:
         self.target_object_entry.configure(state="normal")
         self.target_object_entry.delete(0, "end")
@@ -1041,6 +1044,9 @@ class DatabaseCompareHub(ctk.CTkFrame):
                 business_unit = self.business_unit_dropdown.get().strip()
                 selected_company = self.company_dropdown.get().strip() or "All"
                 selected_rule_type = self.rule_type_dropdown.get().strip() or "All"
+                source_table, target_table, primary_key, table_prefixes = self._comparison_table_config(
+                    selected_module
+                )
 
                 source_config = self._config_from_frame(self.source_frame)
                 target_config = self._config_from_frame(self.target_frame)
@@ -1057,7 +1063,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     ignored_columns = load_exception_columns(exceptions_file_path)
 
                 if selected_module == "Customer Master":
-                    self._set_status(f"Reading source Customer Master for Business Unit: {business_unit}...")
+                    self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
+                        f"Reading source Customer Master for Business Unit: {business_unit}..."
+                    )
                     source_df = read_customer_master(source_config, business_unit)
 
                     self._set_status(
@@ -1065,6 +1074,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Reading target Customer Master for Business Unit: {business_unit}, Company: {selected_company}..."
                     )
                     target_df = read_target_customer_master(target_config, business_unit, selected_company)
+                elif selected_module == "Customer Addresses":
+                    self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
+                        f"Reading source Customer Addresses for Business Unit: {business_unit}..."
+                    )
+                    source_df = read_customer_addresses(source_config, business_unit)
+
+                    self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
+                        f"Reading target Customer Addresses for Business Unit: {business_unit}, Company: {selected_company}..."
+                    )
+                    target_df = read_target_customer_addresses(target_config, business_unit, selected_company)
                     primary_key = "CUNO"
                     table_prefixes = ("OK",)
                 elif selected_module == "Customer Addresses":
@@ -1091,6 +1112,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     primary_key=primary_key,
                     selected_rule_type=selected_rule_type,
                     selected_scope=business_unit,
+                    table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
                 )
 
@@ -1105,6 +1127,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Rows compared: source={len(source_df):,}, target={len(target_df):,}. "
                         f"Issues found: {len(self.results_df):,}."
                     )
+                )
+                self._set_status(
+                    f"{selected_module} comparison complete. "
+                    f"Tables used: Source={source_table}, Target={target_table}."
                 )
                 self._set_status(f"{selected_module} comparison complete.")
             except Exception as exc:

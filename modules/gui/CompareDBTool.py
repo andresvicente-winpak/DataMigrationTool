@@ -661,6 +661,20 @@ def compare_rule_based_customer_master(
     )
 
     normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
+                                                                                  
+                                                                   
+                            
+                                            
+                                                          
+                                       
+                                                             
+                                                  
+                       
+             
+             
+                                                           
+
+    normalized_target = prepare_target_for_rule_comparison(target_df)
     return compare_tables(
         transformed_source,
         normalized_target,
@@ -1001,6 +1015,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
         raise ValueError(f"Unknown module: {selected_module}")
 
     def _module_changed(self) -> None:
+    def _set_target_object(self, target_object: str) -> None:
+        self.target_object_entry.configure(state="normal")
+        self.target_object_entry.delete(0, "end")
+        self.target_object_entry.insert(0, target_object)
+        self.target_object_entry.configure(state="disabled")
+
+    def _module_changed(self) -> None:
+        selected_module = self.module_dropdown.get().strip()
+        if selected_module == "Customer Addresses":
+            self._set_target_object("dbo.OCUSAD")
+        else:
+            self._set_target_object("dbo.OCUSMA")
         self._business_unit_changed()
 
     def _business_unit_changed(self) -> None:
@@ -1060,6 +1086,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Reading target Customer Addresses for Business Unit: {business_unit}, Company: {selected_company}..."
                     )
                     target_df = read_target_customer_addresses(target_config, business_unit, selected_company)
+                    primary_key = "CUNO"
+                    table_prefixes = ("OK",)
+                elif selected_module == "Customer Addresses":
+                    self._set_status(f"Reading source Customer Addresses for Business Unit: {business_unit}...")
+                    source_df = read_customer_addresses(source_config, business_unit)
+
+                    self._set_status(
+                        f"Reading target Customer Addresses for Business Unit: {business_unit}, Company: {selected_company}..."
+                    )
+                    target_df = read_target_customer_addresses(target_config, business_unit, selected_company)
+                    primary_key = ["CUNO", "ADRT", "ADID"]
+                    table_prefixes = ("OP",)
                 else:
                     raise ValueError(f"Unknown module: {selected_module}")
 
@@ -1094,6 +1132,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     f"{selected_module} comparison complete. "
                     f"Tables used: Source={source_table}, Target={target_table}."
                 )
+                self._set_status(f"{selected_module} comparison complete.")
             except Exception as exc:
                 self._set_status("Comparison failed.")
                 messagebox.showerror("Compare Error", str(exc))

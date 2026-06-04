@@ -544,3 +544,105 @@ def test_31_compare_tables_normalizes_decimal_primary_key_before_matching_rows()
     assert result.iloc[0]["Issue"] == "Different value"
     assert result.iloc[0]["Customer"] == "40004"
     assert result.iloc[0]["Column"] == "PHNO"
+
+
+def test_32_transform_source_filters_only_selected_scope():
+    from modules.gui.CompareDBTool import transform_source_with_rules
+
+    source = pd.DataFrame({
+        "OKCUNO": ["40109", "60100"],
+        "OKCUNM": ["WPP customer", "ABI customer"],
+    })
+    rules = pd.DataFrame([
+        {
+            "TARGET_FIELD": "CUNO",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "CUNM",
+            "SOURCE_FIELD": "CUNM",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('4')",
+            "SCOPE": "WPP",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('6')",
+            "SCOPE": "ABI",
+        },
+    ])
+
+    result = transform_source_with_rules(
+        source,
+        rules,
+        selected_rule_type="DIRECT",
+        selected_scope="WPP",
+    )
+
+    assert result["CUNO"].tolist() == ["40109"]
+    assert result["CUNM"].tolist() == ["WPP customer"]
+
+
+def test_33_compare_customer_master_passes_business_unit_scope_to_filters():
+    from modules.gui.CompareDBTool import compare_rule_based_customer_master
+
+    source = pd.DataFrame({
+        "OKCUNO": ["40109", "60100"],
+        "OKCUNM": ["Ken's Foods LLC-MA", "ABI customer"],
+    })
+    target = pd.DataFrame({
+        "OKCUNO": ["40109"],
+        "OKCUNM": ["Ken's Foods LLC-MA"],
+    })
+    rules = pd.DataFrame([
+        {
+            "TARGET_FIELD": "CUNO",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "CUNM",
+            "SOURCE_FIELD": "CUNM",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('4')",
+            "SCOPE": "WPP",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('6')",
+            "SCOPE": "ABI",
+        },
+    ])
+
+    result = compare_rule_based_customer_master(
+        source,
+        target,
+        rules,
+        selected_rule_type="DIRECT",
+        selected_scope="WPP",
+    )
+
+    assert result.empty

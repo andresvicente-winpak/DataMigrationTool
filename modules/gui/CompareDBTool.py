@@ -1,13 +1,13 @@
 """
-SQL Server Database Compare - Customer Master
+SQL Server Database Compare - Customer data
 
-Customer Master flow:
-1. Read source raw Customer Master from dbo.OCUSMA where OKSTAT = '20'.
+Customer data flow:
+1. Read source raw Customer Master from dbo.OCUSMA or Customer Addresses from dbo.OCUSAD.
 2. Apply the migration Rule File to SOURCE only.
-3. Read target Customer Master from dbo.OCUSMA.
-4. Normalize target OCUSMA column names by removing the first 2 characters for comparison:
-   OKCUNO -> CUNO, OKCUNM -> CUNM, etc.
-5. Compare using CUNO as the primary key.
+3. Read the matching target table from dbo.OCUSMA or dbo.OCUSAD.
+4. Normalize M3 table-prefixed column names by removing the first 2 characters for comparison:
+   OKCUNO -> CUNO, OPADID -> ADID, etc.
+5. Compare Customer Master by CUNO and Customer Addresses by CUNO/ADRT/ADID.
 
 Install dependencies:
     pip install pyodbc pandas customtkinter openpyxl
@@ -22,7 +22,7 @@ import os
 import re
 import threading
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 import customtkinter as ctk
 import pandas as pd
@@ -65,15 +65,20 @@ def save_app_settings(settings: dict[str, Any]) -> None:
 
 BUSINESS_UNIT_FILTERS = {
     "All": "",
-    "Intercompany Sales": "LEFT(OKCUNO, 3) = '000'",
-    "ABI": "LEFT(OKCUNO, 1) = '6'",
-    "WD": "(LEFT(OKCUNO, 1) = '1' OR LEFT(OKCUNO, 1) = '2')",
-    "WEM": "(LEFT(OKCUNO, 2) = '58' OR LEFT(OKCUNO, 2) = '59')",
-    "WFI": "LEFT(OKCUNO, 1) = '3'",
-    "WHS 115": "TRY_CONVERT(int, OKCUNO) >= 50000 AND TRY_CONVERT(int, OKCUNO) < 55000",
-    "WHS 116": "TRY_CONVERT(int, OKCUNO) >= 55000 AND TRY_CONVERT(int, OKCUNO) < 58000",
-    "WPP": "LEFT(OKCUNO, 1) = '4'",
+    "Intercompany Sales": "LEFT({customer_column}, 3) = '000'",
+    "ABI": "LEFT({customer_column}, 1) = '6'",
+    "WD": "(LEFT({customer_column}, 1) = '1' OR LEFT({customer_column}, 1) = '2')",
+    "WEM": "(LEFT({customer_column}, 2) = '58' OR LEFT({customer_column}, 2) = '59')",
+    "WFI": "LEFT({customer_column}, 1) = '3'",
+    "WHS 115": "TRY_CONVERT(int, {customer_column}) >= 50000 AND TRY_CONVERT(int, {customer_column}) < 55000",
+    "WHS 116": "TRY_CONVERT(int, {customer_column}) >= 55000 AND TRY_CONVERT(int, {customer_column}) < 58000",
+    "WPP": "LEFT({customer_column}, 1) = '4'",
 }
+
+
+def business_unit_filter_sql(business_unit: str, customer_column: str) -> str:
+    filter_template = BUSINESS_UNIT_FILTERS.get(business_unit, "")
+    return filter_template.format(customer_column=customer_column) if filter_template else ""
 
 
 @dataclass
@@ -126,17 +131,24 @@ def list_tables(config: SqlServerConfig) -> list[str]:
 
 
 def list_target_companies(config: SqlServerConfig) -> list[str]:
-    """Return available target company numbers from dbo.OCUSMA.OKCONO."""
+    """Return available target company numbers from customer tables."""
     query = """
-        SELECT DISTINCT OKCONO
-        FROM dbo.OCUSMA
-        WHERE OKCONO IS NOT NULL
-        ORDER BY OKCONO;
+        SELECT company
+        FROM (
+            SELECT DISTINCT OKCONO AS company
+            FROM dbo.OCUSMA
+            WHERE OKCONO IS NOT NULL
+            UNION
+            SELECT DISTINCT OPCONO AS company
+            FROM dbo.OCUSAD
+            WHERE OPCONO IS NOT NULL
+        ) companies
+        ORDER BY company;
     """
     with get_connection(config) as conn:
         rows = conn.cursor().execute(query).fetchall()
 
-    companies = [str(row.OKCONO).strip() for row in rows if str(row.OKCONO).strip()]
+    companies = [str(row[0]).strip() for row in rows if str(row[0]).strip()]
     return ["All"] + companies
 
 
@@ -149,7 +161,7 @@ def read_customer_master(config: SqlServerConfig, business_unit: str = "All") ->
     """Read source raw Customer Master from dbo.OCUSMA."""
     where_clauses = ["OKSTAT = '20'"]
 
-    business_unit_filter = BUSINESS_UNIT_FILTERS.get(business_unit, "")
+    business_unit_filter = business_unit_filter_sql(business_unit, "OKCUNO")
     if business_unit_filter:
         where_clauses.append(f"({business_unit_filter})")
 
@@ -174,12 +186,50 @@ def read_target_customer_master(
     if company and company.upper() != "ALL":
         where_clauses.append(f"OKCONO = '{sql_literal(company)}'")
 
-    business_unit_filter = BUSINESS_UNIT_FILTERS.get(business_unit, "")
+    business_unit_filter = business_unit_filter_sql(business_unit, "OKCUNO")
     if business_unit_filter:
         where_clauses.append(f"({business_unit_filter})")
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     query = f"SELECT * FROM dbo.OCUSMA {where_sql};"
+
+    with get_connection(config) as conn:
+        return pd.read_sql(query, conn)
+
+
+def read_customer_addresses(config: SqlServerConfig, business_unit: str = "All") -> pd.DataFrame:
+    """Read source raw Customer Addresses from dbo.OCUSAD."""
+    where_clauses = []
+
+    business_unit_filter = business_unit_filter_sql(business_unit, "OPCUNO")
+    if business_unit_filter:
+        where_clauses.append(f"({business_unit_filter})")
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    query = f"SELECT * FROM dbo.OCUSAD {where_sql};"
+
+    with get_connection(config) as conn:
+        return pd.read_sql(query, conn)
+
+
+def read_target_customer_addresses(
+    config: SqlServerConfig,
+    business_unit: str = "All",
+    company: str = "All",
+) -> pd.DataFrame:
+    """Read target Customer Addresses from dbo.OCUSAD, optionally filtered by OPCONO."""
+    where_clauses = []
+
+    company = str(company).strip()
+    if company and company.upper() != "ALL":
+        where_clauses.append(f"OPCONO = '{sql_literal(company)}'")
+
+    business_unit_filter = business_unit_filter_sql(business_unit, "OPCUNO")
+    if business_unit_filter:
+        where_clauses.append(f"({business_unit_filter})")
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    query = f"SELECT * FROM dbo.OCUSAD {where_sql};"
 
     with get_connection(config) as conn:
         return pd.read_sql(query, conn)
@@ -403,6 +453,7 @@ def transform_source_with_rules(
     source_df: pd.DataFrame,
     rules: pd.DataFrame,
     selected_rule_type: str = "All",
+    selected_scope: str = "All",
 ) -> pd.DataFrame:
     """Apply the shared migration rule engine to source rows before validation.
 
@@ -421,6 +472,23 @@ def transform_source_with_rules(
     working_rules["TARGET_FIELD"] = working_rules["TARGET_FIELD"].map(clean_rule_field_name)
     working_rules["SOURCE_FIELD"] = working_rules["SOURCE_FIELD"].map(clean_source_field_names)
     working_rules["RULE_TYPE"] = working_rules["RULE_TYPE"].astype(str).str.strip().str.upper()
+
+    if "SCOPE" not in working_rules.columns:
+        working_rules["SCOPE"] = ""
+    working_rules["SCOPE"] = working_rules["SCOPE"].astype(str).str.strip().str.upper()
+
+    selected_scope = str(selected_scope or "All").strip().upper()
+    # Rule files can contain one FILTER row per business-unit scope. Applying
+    # all of them at once removes valid rows; keep only the selected scope.
+    scoped_filters = working_rules["RULE_TYPE"] == "FILTER"
+    if selected_scope and selected_scope != "ALL":
+        scoped_filters &= working_rules["SCOPE"].isin(["", "GLOBAL", selected_scope])
+    else:
+        scoped_filters &= working_rules["SCOPE"].isin(["", "GLOBAL"])
+
+    working_rules = working_rules[
+        (working_rules["RULE_TYPE"] != "FILTER") | scoped_filters
+    ].copy()
 
     selected_rule_type = selected_rule_type.strip().upper()
     if selected_rule_type and selected_rule_type != "ALL":
@@ -447,25 +515,41 @@ def transform_source_with_rules(
     return normalize_dataframe(transformed)
 
 
-def prepare_target_for_rule_comparison(target_df: pd.DataFrame) -> pd.DataFrame:
+def prepare_target_for_rule_comparison(
+    target_df: pd.DataFrame,
+    table_prefixes: Sequence[str] = ("OK",),
+) -> pd.DataFrame:
     """
-    Target is dbo.OCUSMA but the Rule File target names are M3 names.
+    Rule files use M3 names while database tables include table prefixes.
     Normalize target column names only:
         OKCUNO -> CUNO
-        OKCUNM -> CUNM
-        OKSTAT -> STAT
+        OPADID -> ADID
     """
     target = normalize_dataframe(target_df)
+    prefixes = tuple(str(prefix).strip().upper() for prefix in table_prefixes if str(prefix).strip())
     rename_map = {
         col: col[2:]
         for col in target.columns
-        if col.startswith("OK") and len(col) > 2
+        if any(col.startswith(prefix) for prefix in prefixes) and len(col) > 2
     }
     return target.rename(columns=rename_map)
 
 
-def prepare_indexed_compare_frame(df: pd.DataFrame, primary_key: str, frame_name: str) -> pd.DataFrame:
-    """Normalize a comparison frame and index it by a normalized primary key.
+def normalize_primary_key(primary_key: str | Iterable[str]) -> list[str]:
+    if isinstance(primary_key, str):
+        keys = [primary_key]
+    else:
+        keys = list(primary_key)
+
+    return [clean_rule_field_name(key) for key in keys if clean_rule_field_name(key)]
+
+
+def prepare_indexed_compare_frame(
+    df: pd.DataFrame,
+    primary_key: str | Iterable[str],
+    frame_name: str,
+) -> pd.DataFrame:
+    """Normalize a comparison frame and index it by normalized primary key values.
 
     SQL Server and pandas can represent the same customer number as different
     Python types (for example ``40004``, ``40004.0``, and ``"40004"``). If
@@ -473,27 +557,40 @@ def prepare_indexed_compare_frame(df: pd.DataFrame, primary_key: str, frame_name
     missing on one side and their column values are never compared.
     """
     normalized = normalize_dataframe(df)
+    key_columns = normalize_primary_key(primary_key)
 
-    if primary_key not in normalized.columns:
-        raise ValueError(f"Primary key {primary_key} was not found in {frame_name} table.")
+    if not key_columns:
+        raise ValueError("At least one primary key column is required for comparison.")
+
+    missing_keys = [key for key in key_columns if key not in normalized.columns]
+    if missing_keys:
+        raise ValueError(f"Primary key {', '.join(missing_keys)} was not found in {frame_name} table.")
 
     indexed = normalized.copy()
-    indexed[primary_key] = indexed[primary_key].map(normalize_compare_value)
-    indexed = indexed[indexed[primary_key] != ""]
-    return indexed.drop_duplicates(subset=[primary_key], keep="first").set_index(primary_key)
+    for key in key_columns:
+        indexed[key] = indexed[key].map(normalize_compare_value)
+
+    indexed = indexed[(indexed[key_columns] != "").all(axis=1)]
+    if len(key_columns) == 1:
+        compare_key = indexed[key_columns[0]]
+    else:
+        compare_key = indexed[key_columns].agg(" | ".join, axis=1)
+
+    indexed = indexed.assign(__COMPARE_KEY__=compare_key)
+    return indexed.drop_duplicates(subset=key_columns, keep="first").set_index("__COMPARE_KEY__")
 
 
 def compare_tables(
     source_df: pd.DataFrame,
     target_df: pd.DataFrame,
-    primary_key: str = "CUNO",
+    primary_key: str | Iterable[str] = "CUNO",
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
     ignored = {col.upper() for col in (ignored_columns or [])}
-    pk = primary_key.upper()
+    pk_columns = set(normalize_primary_key(primary_key))
 
-    left = prepare_indexed_compare_frame(source_df, pk, "transformed source")
-    right = prepare_indexed_compare_frame(target_df, pk, "target")
+    left = prepare_indexed_compare_frame(source_df, primary_key, "transformed source")
+    right = prepare_indexed_compare_frame(target_df, primary_key, "target")
 
     left_keys = set(left.index)
     right_keys = set(right.index)
@@ -520,7 +617,7 @@ def compare_tables(
 
     common_columns = [
         col for col in sorted(set(left.columns) & set(right.columns))
-        if col not in ignored and col != pk
+        if col not in ignored and col not in pk_columns
     ]
 
     for key in sorted(left_keys & right_keys):
@@ -550,26 +647,20 @@ def compare_rule_based_customer_master(
     source_df: pd.DataFrame,
     target_df: pd.DataFrame,
     rules: pd.DataFrame,
-    primary_key: str = "CUNO",
+    primary_key: str | Iterable[str] = "CUNO",
     selected_rule_type: str = "All",
+    selected_scope: str = "All",
+    table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
 ) -> pd.DataFrame:
-    transformed_source = transform_source_with_rules(source_df, rules, selected_rule_type)
+    transformed_source = transform_source_with_rules(
+        source_df,
+        rules,
+        selected_rule_type=selected_rule_type,
+        selected_scope=selected_scope,
+    )
 
-                                                                                  
-                                                                   
-                            
-                                            
-                                                          
-                                       
-                                                             
-                                                  
-                       
-             
-             
-                                                           
-
-    normalized_target = prepare_target_for_rule_comparison(target_df)
+    normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
     return compare_tables(
         transformed_source,
         normalized_target,
@@ -621,7 +712,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
         ctk.CTkLabel(controls, text="Module").grid(row=0, column=0, sticky="e", padx=8, pady=8)
         self.module_dropdown = ctk.CTkComboBox(
             controls,
-            values=["Customer Master"],
+            values=["Customer Master", "Customer Addresses"],
             command=lambda _: self._module_changed(),
         )
         self.module_dropdown.set("Customer Master")
@@ -676,7 +767,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.exceptions_file_entry.configure(state="disabled")
         self.exceptions_file_entry.grid(row=3, column=1, columnspan=4, sticky="ew", padx=8, pady=8)
 
-        # Source filter is fixed internally for Customer Master and hidden from the main screen.
+        # Source filter is fixed internally for the selected customer module.
         self.table_info_entry = ctk.CTkEntry(controls, width=500)
         self.table_info_entry.insert(0, "dbo.OCUSMA where OKSTAT = '20'")
         self.table_info_entry.configure(state="disabled")
@@ -684,7 +775,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
 
         ctk.CTkButton(
             controls,
-            text="Compare Customer Master",
+            text="Compare Customer Data",
             command=self.compare_selected_module,
             fg_color="#D97706",
             hover_color="#B45309",
@@ -892,19 +983,39 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.status_label.configure(text=text)
         self.update_idletasks()
 
-    def _module_changed(self) -> None:
-        selected_module = self.module_dropdown.get()
-        if selected_module == "Customer Master":
-            self.business_unit_dropdown.set("All")
-            self._business_unit_changed()
+    def _selected_table_info(self, business_unit: str | None = None) -> str:
+        selected_module = self.module_dropdown.get().strip()
+        business_unit = business_unit if business_unit is not None else self.business_unit_dropdown.get().strip()
 
-    def _business_unit_changed(self) -> None:
-        business_unit = self.business_unit_dropdown.get()
-        business_unit_filter = BUSINESS_UNIT_FILTERS.get(business_unit, "")
-        filter_text = "dbo.OCUSMA where OKSTAT = '20'"
+        if selected_module == "Customer Addresses":
+            base = "dbo.OCUSAD"
+            business_unit_filter = business_unit_filter_sql(business_unit, "OPCUNO")
+        else:
+            base = "dbo.OCUSMA where OKSTAT = '20'"
+            business_unit_filter = business_unit_filter_sql(business_unit, "OKCUNO")
 
         if business_unit_filter:
-            filter_text += f" and {business_unit_filter}"
+            separator = " and " if " where " in base.lower() else " where "
+            base += f"{separator}{business_unit_filter}"
+
+        return base
+
+    def _set_target_object(self, target_object: str) -> None:
+        self.target_object_entry.configure(state="normal")
+        self.target_object_entry.delete(0, "end")
+        self.target_object_entry.insert(0, target_object)
+        self.target_object_entry.configure(state="disabled")
+
+    def _module_changed(self) -> None:
+        selected_module = self.module_dropdown.get().strip()
+        if selected_module == "Customer Addresses":
+            self._set_target_object("dbo.OCUSAD")
+        else:
+            self._set_target_object("dbo.OCUSMA")
+        self._business_unit_changed()
+
+    def _business_unit_changed(self) -> None:
+        filter_text = self._selected_table_info()
 
         self.table_info_entry.configure(state="normal")
         self.table_info_entry.delete(0, "end")
@@ -922,18 +1033,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
                 source_config = self._config_from_frame(self.source_frame)
                 target_config = self._config_from_frame(self.target_frame)
 
+                rule_file_path = self._rule_file_path()
+
+                self._set_status(f"Loading rules from {os.path.basename(rule_file_path)}...")
+                rules = load_rules(rule_file_path)
+
+                exceptions_file_path = self._exceptions_file_path()
+                ignored_columns = set()
+                if exceptions_file_path:
+                    self._set_status(f"Loading exceptions from {os.path.basename(exceptions_file_path)}...")
+                    ignored_columns = load_exception_columns(exceptions_file_path)
+
                 if selected_module == "Customer Master":
-                    rule_file_path = self._rule_file_path()
-
-                    self._set_status(f"Loading rules from {os.path.basename(rule_file_path)}...")
-                    rules = load_rules(rule_file_path)
-
-                    exceptions_file_path = self._exceptions_file_path()
-                    ignored_columns = set()
-                    if exceptions_file_path:
-                        self._set_status(f"Loading exceptions from {os.path.basename(exceptions_file_path)}...")
-                        ignored_columns = load_exception_columns(exceptions_file_path)
-
                     self._set_status(f"Reading source Customer Master for Business Unit: {business_unit}...")
                     source_df = read_customer_master(source_config, business_unit)
 
@@ -941,6 +1052,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Reading target Customer Master for Business Unit: {business_unit}, Company: {selected_company}..."
                     )
                     target_df = read_target_customer_master(target_config, business_unit, selected_company)
+                    primary_key = "CUNO"
+                    table_prefixes = ("OK",)
+                elif selected_module == "Customer Addresses":
+                    self._set_status(f"Reading source Customer Addresses for Business Unit: {business_unit}...")
+                    source_df = read_customer_addresses(source_config, business_unit)
+
+                    self._set_status(
+                        f"Reading target Customer Addresses for Business Unit: {business_unit}, Company: {selected_company}..."
+                    )
+                    target_df = read_target_customer_addresses(target_config, business_unit, selected_company)
+                    primary_key = ["CUNO", "ADRT", "ADID"]
+                    table_prefixes = ("OP",)
                 else:
                     raise ValueError(f"Unknown module: {selected_module}")
 
@@ -949,8 +1072,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     source_df,
                     target_df,
                     rules,
-                    primary_key="CUNO",
+                    primary_key=primary_key,
                     selected_rule_type=selected_rule_type,
+                    selected_scope=business_unit,
+                    table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
                 )
 
@@ -965,7 +1090,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Issues found: {len(self.results_df):,}."
                     )
                 )
-                self._set_status("Customer Master comparison complete.")
+                self._set_status(f"{selected_module} comparison complete.")
             except Exception as exc:
                 self._set_status("Comparison failed.")
                 messagebox.showerror("Compare Error", str(exc))

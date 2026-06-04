@@ -544,3 +544,154 @@ def test_31_compare_tables_normalizes_decimal_primary_key_before_matching_rows()
     assert result.iloc[0]["Issue"] == "Different value"
     assert result.iloc[0]["Customer"] == "40004"
     assert result.iloc[0]["Column"] == "PHNO"
+
+
+def test_32_transform_source_filters_only_selected_scope():
+    from modules.gui.CompareDBTool import transform_source_with_rules
+
+    source = pd.DataFrame({
+        "OKCUNO": ["40109", "60100"],
+        "OKCUNM": ["WPP customer", "ABI customer"],
+    })
+    rules = pd.DataFrame([
+        {
+            "TARGET_FIELD": "CUNO",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "CUNM",
+            "SOURCE_FIELD": "CUNM",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('4')",
+            "SCOPE": "WPP",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('6')",
+            "SCOPE": "ABI",
+        },
+    ])
+
+    result = transform_source_with_rules(
+        source,
+        rules,
+        selected_rule_type="DIRECT",
+        selected_scope="WPP",
+    )
+
+    assert result["CUNO"].tolist() == ["40109"]
+    assert result["CUNM"].tolist() == ["WPP customer"]
+
+
+def test_33_compare_customer_master_passes_business_unit_scope_to_filters():
+    from modules.gui.CompareDBTool import compare_rule_based_customer_master
+
+    source = pd.DataFrame({
+        "OKCUNO": ["40109", "60100"],
+        "OKCUNM": ["Ken's Foods LLC-MA", "ABI customer"],
+    })
+    target = pd.DataFrame({
+        "OKCUNO": ["40109"],
+        "OKCUNM": ["Ken's Foods LLC-MA"],
+    })
+    rules = pd.DataFrame([
+        {
+            "TARGET_FIELD": "CUNO",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "CUNM",
+            "SOURCE_FIELD": "CUNM",
+            "RULE_TYPE": "DIRECT",
+            "RULE_VALUE": "",
+            "SCOPE": "GLOBAL",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('4')",
+            "SCOPE": "WPP",
+        },
+        {
+            "TARGET_FIELD": "_ROW_",
+            "SOURCE_FIELD": "CUNO",
+            "RULE_TYPE": "FILTER",
+            "RULE_VALUE": "source is not None and str(source).strip().startswith('6')",
+            "SCOPE": "ABI",
+        },
+    ])
+
+    result = compare_rule_based_customer_master(
+        source,
+        target,
+        rules,
+        selected_rule_type="DIRECT",
+        selected_scope="WPP",
+    )
+
+    assert result.empty
+
+
+def test_34_business_unit_filter_uses_requested_customer_column():
+    from modules.gui.CompareDBTool import business_unit_filter_sql
+
+    assert business_unit_filter_sql("WPP", "OPCUNO") == "LEFT(OPCUNO, 1) = '4'"
+    assert "OPCUNO" in business_unit_filter_sql("WHS 115", "OPCUNO")
+
+
+def test_35_prepare_target_normalizes_ocusad_prefix():
+    from modules.gui.CompareDBTool import prepare_target_for_rule_comparison
+
+    target = pd.DataFrame({
+        "OPCUNO": ["40109"],
+        "OPADRT": ["1"],
+        "OPADID": ["001"],
+        "OPCUNM": ["Ken's Foods LLC-MA"],
+    })
+
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("OP",))
+
+    assert list(result.columns) == ["CUNO", "ADRT", "ADID", "CUNM"]
+
+
+def test_36_compare_tables_supports_customer_address_composite_key():
+    from modules.gui.CompareDBTool import compare_tables
+
+    source = pd.DataFrame({
+        "CUNO": ["40109", "40109"],
+        "ADRT": ["1", "1"],
+        "ADID": ["001", "002"],
+        "CUNM": ["Main", "Ship to"],
+    })
+    target = pd.DataFrame({
+        "CUNO": ["40109", "40109"],
+        "ADRT": ["1", "1"],
+        "ADID": ["001", "002"],
+        "CUNM": ["Main", "Ship-to changed"],
+    })
+
+    result = compare_tables(source, target, primary_key=["CUNO", "ADRT", "ADID"])
+
+    assert result.to_dict("records") == [{
+        "Issue": "Different value",
+        "Customer": "40109 | 1 | 002",
+        "Column": "CUNM",
+        "Source Value": "Ship to",
+        "Target Value": "Ship-to changed",
+    }]

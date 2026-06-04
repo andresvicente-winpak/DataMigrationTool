@@ -646,3 +646,52 @@ def test_33_compare_customer_master_passes_business_unit_scope_to_filters():
     )
 
     assert result.empty
+
+
+def test_34_business_unit_filter_uses_requested_customer_column():
+    from modules.gui.CompareDBTool import business_unit_filter_sql
+
+    assert business_unit_filter_sql("WPP", "OPCUNO") == "LEFT(OPCUNO, 1) = '4'"
+    assert "OPCUNO" in business_unit_filter_sql("WHS 115", "OPCUNO")
+
+
+def test_35_prepare_target_normalizes_ocusad_prefix():
+    from modules.gui.CompareDBTool import prepare_target_for_rule_comparison
+
+    target = pd.DataFrame({
+        "OPCUNO": ["40109"],
+        "OPADRT": ["1"],
+        "OPADID": ["001"],
+        "OPCUNM": ["Ken's Foods LLC-MA"],
+    })
+
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("OP",))
+
+    assert list(result.columns) == ["CUNO", "ADRT", "ADID", "CUNM"]
+
+
+def test_36_compare_tables_supports_customer_address_composite_key():
+    from modules.gui.CompareDBTool import compare_tables
+
+    source = pd.DataFrame({
+        "CUNO": ["40109", "40109"],
+        "ADRT": ["1", "1"],
+        "ADID": ["001", "002"],
+        "CUNM": ["Main", "Ship to"],
+    })
+    target = pd.DataFrame({
+        "CUNO": ["40109", "40109"],
+        "ADRT": ["1", "1"],
+        "ADID": ["001", "002"],
+        "CUNM": ["Main", "Ship-to changed"],
+    })
+
+    result = compare_tables(source, target, primary_key=["CUNO", "ADRT", "ADID"])
+
+    assert result.to_dict("records") == [{
+        "Issue": "Different value",
+        "Customer": "40109 | 1 | 002",
+        "Column": "CUNM",
+        "Source Value": "Ship to",
+        "Target Value": "Ship-to changed",
+    }]

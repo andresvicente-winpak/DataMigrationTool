@@ -1061,6 +1061,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     source_df = read_customer_master(source_config, business_unit)
 
                     self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
                         f"Reading target Customer Master for Business Unit: {business_unit}, Company: {selected_company}..."
                     )
                     target_df = read_target_customer_master(target_config, business_unit, selected_company)
@@ -1079,7 +1080,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
                 else:
                     raise ValueError(f"Unknown module: {selected_module}")
 
-                self._set_status("Applying Rule File to source and comparing data...")
+                self._set_status(
+                    f"Using tables: Source={source_table}, Target={target_table}. "
+                    "Applying Rule File to source and comparing data..."
+                )
                 self.results_df = compare_rule_based_customer_master(
                     source_df,
                     target_df,
@@ -1095,6 +1099,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     text=(
                         f"Module: {selected_module}. Business Unit: {business_unit}. "
                         f"Company: {selected_company}. "
+                        f"Source Table: {source_table}. Target Table: {target_table}. "
                         f"Rule Type: {selected_rule_type}. Rules loaded: {len(rules):,}. "
                         f"Exception columns skipped: {len(ignored_columns):,}. "
                         f"Rows compared: source={len(source_df):,}, target={len(target_df):,}. "

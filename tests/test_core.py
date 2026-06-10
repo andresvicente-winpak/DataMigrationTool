@@ -739,11 +739,7 @@ def test_38_database_compare_customer_master_selection_resets_rule_file(monkeypa
     hub._business_unit_changed = lambda: None
 
     monkeypatch.setattr("modules.gui.CompareDBTool.save_app_settings", lambda settings: None)
-    monkeypatch.setattr(
-        "modules.gui.CompareDBTool.append_rule_usage_log",
-        lambda module, rule_file: log_calls.append((module, rule_file)),
-    )
-
+    monkeypatch.setattr("modules.gui.CompareDBTool.append_rule_usage_log",lambda module, rule_file: log_calls.append((module, rule_file)),)
     hub._module_changed()
 
     assert hub.rule_file_entry.value == os.path.join("config", "rules", "CRS610MI.xlsx")
@@ -773,3 +769,4 @@ def test_39_database_compare_customer_master_writes_rule_usage_log(tmp_path, mon
     assert "Customer Master selected" in log_text
     assert "Using CRS610 rules: config" in log_text
     assert "CRS610MI.xlsx" in log_text
+    assert calls == [True]

@@ -23,6 +23,7 @@ import re
 import threading
 import warnings
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Iterable, Sequence
 
 import customtkinter as ctk
@@ -37,6 +38,7 @@ from modules.transform_engine import FilterEngine, TransformEngine
 
 
 APP_CONFIG_FILE = "db_compare_settings.json"
+RULE_USAGE_LOG_FILE = "db_compare_rule_usage.log"
 STATIC_EXCEPTIONS_FILE = "Exceptions_ComparissonDB.xlsx"
 CUSTOMER_MASTER_MODULE = "Customer Master"
 CUSTOMER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS610MI.xlsx")
@@ -51,6 +53,20 @@ def app_folder() -> str:
 
 def app_config_path() -> str:
     return os.path.join(app_folder(), APP_CONFIG_FILE)
+
+
+def rule_usage_log_path() -> str:
+    return os.path.join(app_folder(), RULE_USAGE_LOG_FILE)
+
+
+def append_rule_usage_log(selected_module: str, rule_file_path: str) -> None:
+    if selected_module != CUSTOMER_MASTER_MODULE:
+        return
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    message = f"{timestamp} - Customer Master selected. Using CRS610 rules: {rule_file_path}\n"
+    with open(rule_usage_log_path(), "a", encoding="utf-8") as file:
+        file.write(message)
 
 
 def load_app_settings() -> dict[str, Any]:
@@ -779,11 +795,11 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.company_dropdown.grid(row=0, column=4, sticky="ew", padx=8, pady=8)
         # Companies are loaded automatically at startup.
 
-        ctk.CTkLabel(controls, text="Rule File").grid(row=1, column=2, sticky="e", padx=8)
+        self.rule_file_label = ctk.CTkLabel(controls, text="Rule File")
         self.rule_file_entry = ctk.CTkEntry(controls, width=240)
         self.rule_file_entry.insert(0, self.default_rule_file)
-        self.rule_file_entry.grid(row=1, column=3, columnspan=3, sticky="ew", padx=8)
-        ctk.CTkButton(controls, text="Browse", command=self.browse_rule_file).grid(row=1, column=6, padx=8)
+        self.rule_file_browse_button = ctk.CTkButton(controls, text="Browse", command=self.browse_rule_file)
+        append_rule_usage_log(CUSTOMER_MASTER_MODULE, self.default_rule_file)
 
         ctk.CTkLabel(controls, text="Rule Type").grid(row=2, column=0, sticky="e", padx=8)
         self.rule_type_dropdown = ctk.CTkComboBox(controls, values=["All"])
@@ -969,6 +985,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
 
         self.settings["rule_file_path"] = file_path
         save_app_settings(self.settings)
+        append_rule_usage_log(self.module_dropdown.get().strip(), file_path)
         self.load_rule_type_options(show_errors=True)
 
     def _exceptions_file_path(self) -> str:
@@ -1049,6 +1066,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
         self.rule_file_entry.insert(0, default_rule_file)
         self.settings["rule_file_path"] = default_rule_file
         save_app_settings(self.settings)
+        append_rule_usage_log(selected_module, default_rule_file)
         self.load_rule_type_options(show_errors=True)
 
     def _business_unit_changed(self) -> None:

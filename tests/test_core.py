@@ -734,13 +734,39 @@ def test_38_database_compare_customer_master_selection_resets_rule_file(monkeypa
     hub.rule_file_entry = FakeEntry()
     hub.settings = {}
     calls = []
+    log_calls = []
     hub.load_rule_type_options = lambda show_errors=True: calls.append(show_errors)
     hub._business_unit_changed = lambda: None
 
     monkeypatch.setattr("modules.gui.CompareDBTool.save_app_settings", lambda settings: None)
-
+    monkeypatch.setattr("modules.gui.CompareDBTool.append_rule_usage_log",lambda module, rule_file: log_calls.append((module, rule_file)),)
     hub._module_changed()
 
     assert hub.rule_file_entry.value == os.path.join("config", "rules", "CRS610MI.xlsx")
     assert hub.settings["rule_file_path"] == os.path.join("config", "rules", "CRS610MI.xlsx")
+    assert log_calls == [(
+        CUSTOMER_MASTER_MODULE,
+        os.path.join("config", "rules", "CRS610MI.xlsx"),
+    )]
+    assert calls == [True]
+
+
+def test_39_database_compare_customer_master_writes_rule_usage_log(tmp_path, monkeypatch):
+    from modules.gui.CompareDBTool import (
+        CUSTOMER_MASTER_MODULE,
+        append_rule_usage_log,
+    )
+
+    log_path = tmp_path / "db_compare_rule_usage.log"
+    monkeypatch.setattr("modules.gui.CompareDBTool.rule_usage_log_path", lambda: str(log_path))
+
+    append_rule_usage_log(
+        CUSTOMER_MASTER_MODULE,
+        os.path.join("config", "rules", "CRS610MI.xlsx"),
+    )
+
+    log_text = log_path.read_text(encoding="utf-8")
+    assert "Customer Master selected" in log_text
+    assert "Using CRS610 rules: config" in log_text
+    assert "CRS610MI.xlsx" in log_text
     assert calls == [True]

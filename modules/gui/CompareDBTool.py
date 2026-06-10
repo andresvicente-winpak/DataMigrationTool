@@ -21,6 +21,7 @@ import json
 import os
 import re
 import threading
+import warnings
 from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
@@ -118,6 +119,23 @@ def get_connection(config: SqlServerConfig):
     return pyodbc.connect(config.connection_string(), timeout=15)
 
 
+def read_sql_quiet(query: str, conn) -> pd.DataFrame:
+    """Run pd.read_sql while hiding Pandas' raw-DBAPI connection warning.
+
+    The DB validation tool intentionally uses pyodbc connections directly. Pandas
+    supports that path well enough for this workflow, but emits a UserWarning
+    recommending SQLAlchemy; suppress only that known warning so the GUI log stays
+    focused on actionable validation output.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="pandas only supports SQLAlchemy connectable.*",
+            category=UserWarning,
+        )
+        return pd.read_sql(query, conn)
+
+
 def list_tables(config: SqlServerConfig) -> list[str]:
     query = """
         SELECT TABLE_SCHEMA + '.' + TABLE_NAME AS table_name
@@ -171,7 +189,7 @@ def read_customer_master(config: SqlServerConfig, business_unit: str = "All") ->
         WHERE {' AND '.join(where_clauses)};
     """
     with get_connection(config) as conn:
-        return pd.read_sql(query, conn)
+        return read_sql_quiet(query, conn)
 
 
 def read_target_customer_master(
@@ -194,7 +212,7 @@ def read_target_customer_master(
     query = f"SELECT * FROM dbo.OCUSMA {where_sql};"
 
     with get_connection(config) as conn:
-        return pd.read_sql(query, conn)
+        return read_sql_quiet(query, conn)
 
 
 def read_customer_addresses(config: SqlServerConfig, business_unit: str = "All") -> pd.DataFrame:
@@ -209,7 +227,7 @@ def read_customer_addresses(config: SqlServerConfig, business_unit: str = "All")
     query = f"SELECT * FROM dbo.OCUSAD {where_sql};"
 
     with get_connection(config) as conn:
-        return pd.read_sql(query, conn)
+        return read_sql_quiet(query, conn)
 
 
 def read_target_customer_addresses(
@@ -232,7 +250,7 @@ def read_target_customer_addresses(
     query = f"SELECT * FROM dbo.OCUSAD {where_sql};"
 
     with get_connection(config) as conn:
-        return pd.read_sql(query, conn)
+        return read_sql_quiet(query, conn)
 
 
 def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:

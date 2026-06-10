@@ -855,3 +855,35 @@ def test_45_database_compare_supplier_master_writes_rule_usage_log(tmp_path, mon
     assert "Supplier Master selected" in log_text
     assert "Using CRS620 rules: config" in log_text
     assert "CRS620MI.xlsx" in log_text
+
+
+def test_46_normalize_dataframe_coalesces_duplicate_columns_without_dtype_error():
+    from modules.gui.CompareDBTool import normalize_dataframe
+
+    source = pd.DataFrame([
+        [" 502125 ", "", "Ingenia"],
+        ["", "502126", "Other"],
+    ], columns=["IDSUNO", "IDSUNO", "IDSUNM"])
+
+    result = normalize_dataframe(source)
+
+    assert list(result.columns) == ["IDSUNO", "IDSUNM"]
+    assert result["IDSUNO"].tolist() == ["502125", "502126"]
+    assert result["IDSUNM"].tolist() == ["Ingenia", "Other"]
+
+
+def test_47_supplier_target_normalization_coalesces_duplicate_stripped_columns():
+    from modules.gui.CompareDBTool import prepare_target_for_rule_comparison
+
+    target = pd.DataFrame({
+        "IDSUNO": ["502125", ""],
+        "SASUNO": ["502125", "502126"],
+        "IRSUNO": ["502125", "502126"],
+        "IDSUNM": ["Ingenia", "Other"],
+    })
+
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA", "IR"))
+
+    assert list(result.columns) == ["SUNO", "SUNM"]
+    assert result["SUNO"].tolist() == ["502125", "502126"]
+    assert result["SUNM"].tolist() == ["Ingenia", "Other"]

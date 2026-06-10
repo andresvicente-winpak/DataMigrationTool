@@ -384,9 +384,37 @@ def read_target_supplier_master(
         )
 
 
+def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Collapse duplicate column labels by keeping the first non-empty value.
+
+    Supplier comparisons join multiple M3 tables and then strip table prefixes
+    (for example IDSUNO, SASUNO, and IRSUNO all normalize to SUNO). Pandas
+    returns a DataFrame, not a Series, when selecting a duplicate label, so
+    collapse those labels before code expects Series-only column access.
+    """
+    if df.columns.is_unique:
+        return df
+
+    collapsed = pd.DataFrame(index=df.index)
+    for col in dict.fromkeys(df.columns):
+        matching_columns = df.loc[:, df.columns == col]
+        if isinstance(matching_columns, pd.Series) or matching_columns.shape[1] == 1:
+            collapsed[col] = matching_columns.iloc[:, 0]
+            continue
+
+        non_empty_values = matching_columns.replace("", pd.NA)
+        collapsed[col] = non_empty_values.bfill(axis=1).iloc[:, 0].where(
+            non_empty_values.notna().any(axis=1),
+            matching_columns.iloc[:, 0],
+        )
+
+    return collapsed
+
+
 def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     cleaned = df.copy()
     cleaned.columns = [str(col).strip().upper() for col in cleaned.columns]
+    cleaned = coalesce_duplicate_columns(cleaned)
 
     for col in cleaned.columns:
         if cleaned[col].dtype == "object":
@@ -688,7 +716,7 @@ def prepare_target_for_rule_comparison(
         for col in target.columns
         if any(col.startswith(prefix) for prefix in prefixes) and len(col) > 2
     }
-    return target.rename(columns=rename_map)
+    return coalesce_duplicate_columns(target.rename(columns=rename_map))
 
 
 def normalize_primary_key(primary_key: str | Iterable[str]) -> list[str]:

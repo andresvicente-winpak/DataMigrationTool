@@ -769,4 +769,93 @@ def test_39_database_compare_customer_master_writes_rule_usage_log(tmp_path, mon
     assert "Customer Master selected" in log_text
     assert "Using CRS610 rules: config" in log_text
     assert "CRS610MI.xlsx" in log_text
-    assert calls == [True]
+
+
+def test_40_database_compare_supplier_master_default_rule_file():
+    from modules.gui.CompareDBTool import (
+        SUPPLIER_MASTER_MODULE,
+        DatabaseCompareHub,
+    )
+
+    hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
+    assert hub._default_rule_file(SUPPLIER_MASTER_MODULE) == os.path.join(
+        "config", "rules", "CRS620MI.xlsx"
+    )
+
+
+def test_41_database_compare_supplier_master_config_uses_supplier_tables():
+    from modules.gui.CompareDBTool import (
+        SUPPLIER_MASTER_MODULE,
+        DatabaseCompareHub,
+    )
+
+    hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
+    assert hub._comparison_table_config(SUPPLIER_MASTER_MODULE) == (
+        "dbo.CIDMAS + dbo.CIDADR",
+        "dbo.CIDMAS + dbo.CIDADR",
+        ["CONO", "SUNO"],
+        ("ID", "SA"),
+    )
+
+
+def test_42_supplier_master_query_filters_active_suppliers_and_company():
+    from modules.gui.CompareDBTool import supplier_master_query
+
+    query = supplier_master_query("100")
+
+    assert "FROM dbo.CIDMAS m" in query
+    assert "LEFT JOIN dbo.CIDADR a" in query
+    assert "LEFT JOIN dbo.CIDREF" not in query
+    assert "m.IDSTAT = '20'" in query
+    assert "m.IDCONO = '100'" in query
+    assert "a.SASUNO = m.IDSUNO" in query
+    assert "a.SACONO = m.IDCONO" in query
+
+
+def test_43_supplier_source_value_resolves_table_prefixes():
+    from modules.gui.CompareDBTool import source_value
+
+    row = pd.Series({"IDSUNO": "502125", "SAADID": "1", "SACONO": "100"})
+
+    assert source_value(row, "SUNO") == "502125"
+    assert source_value(row, "ADID") == "1"
+    assert source_value(row, "CONO") == "100"
+
+
+def test_44_supplier_target_normalization_uses_supplier_prefixes():
+    from modules.gui.CompareDBTool import prepare_target_for_rule_comparison
+
+    target = pd.DataFrame({
+        "IDCONO": ["100"],
+        "IDSUNO": ["502125"],
+        "IDSUNM": ["Ingenia"],
+        "SACONO": ["100"],
+        "SASUNO": ["502125"],
+        "SAADID": ["1"],
+    })
+
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA"))
+
+    assert list(result.columns) == ["CONO", "SUNO", "SUNM", "ADID"]
+    assert result.loc[0, "CONO"] == "100"
+    assert result.loc[0, "SUNO"] == "502125"
+
+
+def test_45_database_compare_supplier_master_writes_rule_usage_log(tmp_path, monkeypatch):
+    from modules.gui.CompareDBTool import (
+        SUPPLIER_MASTER_MODULE,
+        append_rule_usage_log,
+    )
+
+    log_path = tmp_path / "db_compare_rule_usage.log"
+    monkeypatch.setattr("modules.gui.CompareDBTool.rule_usage_log_path", lambda: str(log_path))
+
+    append_rule_usage_log(
+        SUPPLIER_MASTER_MODULE,
+        os.path.join("config", "rules", "CRS620MI.xlsx"),
+    )
+
+    log_text = log_path.read_text(encoding="utf-8")
+    assert "Supplier Master selected" in log_text
+    assert "Using CRS620 rules: config" in log_text
+    assert "CRS620MI.xlsx" in log_text

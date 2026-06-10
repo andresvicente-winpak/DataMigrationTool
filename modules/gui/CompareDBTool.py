@@ -175,38 +175,62 @@ def list_tables(config: SqlServerConfig) -> list[str]:
     return [row.table_name for row in rows]
 
 
-def list_target_companies(config: SqlServerConfig) -> list[str]:
-    """Return available target company numbers from customer tables."""
+def sql_object_exists(conn, schema: str, object_name: str) -> bool:
+    """Return whether a SQL Server table/view exists in the current database."""
     query = """
-        SELECT company
-        FROM (
-            SELECT DISTINCT OKCONO AS company
-            FROM dbo.OCUSMA
-            WHERE OKCONO IS NOT NULL
-            UNION
-            SELECT DISTINCT OPCONO AS company
-            FROM dbo.OCUSAD
-            WHERE OPCONO IS NOT NULL
-            UNION
-            SELECT DISTINCT IDCONO AS company
-            FROM dbo.CIDMAS
-            WHERE IDCONO IS NOT NULL
-            UNION
-            SELECT DISTINCT SACONO AS company
-            FROM dbo.CIDADR
-            WHERE SACONO IS NOT NULL
-            UNION
-            SELECT DISTINCT IRCONO AS company
-            FROM dbo.CIDREF
-            WHERE IRCONO IS NOT NULL
-        ) companies
-        ORDER BY company;
+        SELECT 1
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = ?
+          AND TABLE_NAME = ?;
     """
-    with get_connection(config) as conn:
-        rows = conn.cursor().execute(query).fetchall()
+    return conn.cursor().execute(query, schema, object_name).fetchone() is not None
 
-    companies = [str(row[0]).strip() for row in rows if str(row[0]).strip()]
-    return ["All"] + companies
+
+def sql_column_exists(conn, schema: str, table_name: str, column_name: str) -> bool:
+    """Return whether a SQL Server column exists in the current database."""
+    query = """
+        SELECT 1
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ?
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?;
+    """
+    return conn.cursor().execute(query, schema, table_name, column_name).fetchone() is not None
+
+
+def available_company_sources(conn) -> list[tuple[str, str, str]]:
+    """Return configured company-number sources that are available in the database."""
+    candidates = [
+        ("dbo", "OCUSMA", "OKCONO"),
+        ("dbo", "OCUSAD", "OPCONO"),
+        ("dbo", "CIDMAS", "IDCONO"),
+        ("dbo", "CIDADR", "SACONO"),
+        ("dbo", "CIDREF", "IRCONO"),
+    ]
+    return [
+        candidate
+        for candidate in candidates
+        if sql_object_exists(conn, candidate[0], candidate[1])
+        and sql_column_exists(conn, candidate[0], candidate[1], candidate[2])
+    ]
+
+
+def list_target_companies(config: SqlServerConfig) -> list[str]:
+    """Return available target company numbers from whichever supported tables exist."""
+    companies: set[str] = set()
+
+    with get_connection(config) as conn:
+        for schema, table_name, company_column in available_company_sources(conn):
+            query = f"""
+                SELECT DISTINCT {company_column} AS company
+                FROM {schema}.{table_name}
+                WHERE {company_column} IS NOT NULL
+                ORDER BY {company_column};
+            """
+            rows = conn.cursor().execute(query).fetchall()
+            companies.update(str(row[0]).strip() for row in rows if str(row[0]).strip())
+
+    return ["All"] + sorted(companies)
 
 
 def sql_literal(value: str) -> str:
@@ -292,31 +316,59 @@ def read_target_customer_addresses(
         return read_sql_quiet(query, conn)
 
 
-def supplier_master_query(company: str = "All") -> str:
-    """Build the Supplier Master validation query across CIDMAS/CIDADR/CIDREF."""
+def supplier_master_query(
+    company: str = "All",
+    include_address: bool = True,
+    include_reference: bool = True,
+) -> str:
+    """Build the Supplier Master validation query across available supplier tables."""
     where_clauses = ["m.IDSTAT = '20'"]
 
     company = str(company).strip()
     if company and company.upper() != "ALL":
         where_clauses.append(f"m.IDCONO = '{sql_literal(company)}'")
 
-    return f"""
-        SELECT m.*, a.*, r.*
-        FROM dbo.CIDMAS m
+    select_parts = ["m.*"]
+    join_parts = []
+
+    if include_address:
+        select_parts.append("a.*")
+        join_parts.append(
+            """
         LEFT JOIN dbo.CIDADR a
             ON a.SASUNO = m.IDSUNO
-            AND a.SACONO = m.IDCONO
+            AND a.SACONO = m.IDCONO"""
+        )
+
+    if include_reference:
+        select_parts.append("r.*")
+        join_parts.append(
+            """
         LEFT JOIN dbo.CIDREF r
             ON r.IRSUNO = m.IDSUNO
-            AND r.IRCONO = m.IDCONO
+            AND r.IRCONO = m.IDCONO"""
+        )
+
+    joins_sql = "".join(join_parts)
+    return f"""
+        SELECT {', '.join(select_parts)}
+        FROM dbo.CIDMAS m{joins_sql}
         WHERE {' AND '.join(where_clauses)};
     """
 
 
+def supplier_table_availability(conn) -> tuple[bool, bool]:
+    """Return optional Supplier Master companion table availability."""
+    include_address = sql_object_exists(conn, "dbo", "CIDADR")
+    include_reference = sql_object_exists(conn, "dbo", "CIDREF")
+    return include_address, include_reference
+
+
 def read_supplier_master(config: SqlServerConfig) -> pd.DataFrame:
-    """Read active source Supplier Master data from CIDMAS with CIDADR/CIDREF context."""
+    """Read active source Supplier Master data from CIDMAS plus available context tables."""
     with get_connection(config) as conn:
-        return read_sql_quiet(supplier_master_query(), conn)
+        include_address, include_reference = supplier_table_availability(conn)
+        return read_sql_quiet(supplier_master_query(include_address=include_address, include_reference=include_reference), conn)
 
 
 def read_target_supplier_master(
@@ -325,7 +377,11 @@ def read_target_supplier_master(
 ) -> pd.DataFrame:
     """Read active target Supplier Master data, optionally filtered by IDCONO."""
     with get_connection(config) as conn:
-        return read_sql_quiet(supplier_master_query(company), conn)
+        include_address, include_reference = supplier_table_availability(conn)
+        return read_sql_quiet(
+            supplier_master_query(company, include_address=include_address, include_reference=include_reference),
+            conn,
+        )
 
 
 def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -980,7 +1036,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
     def load_company_options(self, show_errors: bool = True) -> None:
         try:
             target_config = self._config_from_frame(self.target_frame)
-            self._set_status("Loading companies from target dbo.OCUSMA.OKCONO...")
+            self._set_status("Loading companies from available target company columns...")
             companies = list_target_companies(target_config)
             self.company_dropdown.configure(values=companies)
 
@@ -1085,7 +1141,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
             base = "dbo.OCUSAD"
             business_unit_filter = business_unit_filter_sql(business_unit, "OPCUNO")
         elif selected_module == SUPPLIER_MASTER_MODULE:
-            base = "dbo.CIDMAS + dbo.CIDADR + dbo.CIDREF where IDSTAT = '20'"
+            base = "dbo.CIDMAS plus available supplier context tables where IDSTAT = '20'"
             business_unit_filter = ""
         else:
             base = "dbo.OCUSMA where OKSTAT = '20'"
@@ -1101,7 +1157,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
         if selected_module == CUSTOMER_ADDRESSES_MODULE:
             return "dbo.OCUSAD", "dbo.OCUSAD", ["CUNO", "ADRT", "ADID"], ("OP",)
         if selected_module == SUPPLIER_MASTER_MODULE:
-            supplier_tables = "dbo.CIDMAS + dbo.CIDADR + dbo.CIDREF"
+            supplier_tables = "dbo.CIDMAS + available dbo.CIDADR/dbo.CIDREF"
             return supplier_tables, supplier_tables, "SUNO", ("ID", "SA", "IR")
         if selected_module == CUSTOMER_MASTER_MODULE:
             return "dbo.OCUSMA", "dbo.OCUSMA", "CUNO", ("OK",)

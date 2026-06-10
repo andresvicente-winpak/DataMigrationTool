@@ -38,6 +38,11 @@ from modules.transform_engine import FilterEngine, TransformEngine
 
 APP_CONFIG_FILE = "db_compare_settings.json"
 STATIC_EXCEPTIONS_FILE = "Exceptions_ComparissonDB.xlsx"
+CUSTOMER_MASTER_MODULE = "Customer Master"
+CUSTOMER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS610MI.xlsx")
+MODULE_DEFAULT_RULE_FILES = {
+    CUSTOMER_MASTER_MODULE: CUSTOMER_MASTER_RULE_FILE,
+}
 
 
 def app_folder() -> str:
@@ -719,7 +724,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
             "database": "di_trn_staging",
         }
         self.settings = load_app_settings()
-        self.default_rule_file = self.settings.get("rule_file_path", self._default_rule_file())
+        self.default_rule_file = self._default_rule_file(CUSTOMER_MASTER_MODULE)
         self.default_exceptions_file = STATIC_EXCEPTIONS_FILE
         self.default_company = self.settings.get("target_company", "All")
         self.connections_visible = False
@@ -743,10 +748,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
         ctk.CTkLabel(controls, text="Module").grid(row=0, column=0, sticky="e", padx=8, pady=8)
         self.module_dropdown = ctk.CTkComboBox(
             controls,
-            values=["Customer Master", "Customer Addresses"],
+            values=[CUSTOMER_MASTER_MODULE, "Customer Addresses"],
             command=lambda _: self._module_changed(),
         )
-        self.module_dropdown.set("Customer Master")
+        self.module_dropdown.set(CUSTOMER_MASTER_MODULE)
         self.module_dropdown.grid(row=0, column=1, sticky="ew", padx=8, pady=8)
 
         ctk.CTkButton(
@@ -970,8 +975,8 @@ class DatabaseCompareHub(ctk.CTkFrame):
         """Return the fixed comparison exceptions workbook path."""
         return STATIC_EXCEPTIONS_FILE
 
-    def _default_rule_file(self) -> str:
-        default_path = os.path.join("config", "rules", "CRS610MI.xlsx")
+    def _default_rule_file(self, selected_module: str | None = None) -> str:
+        default_path = MODULE_DEFAULT_RULE_FILES.get(selected_module or CUSTOMER_MASTER_MODULE, CUSTOMER_MASTER_RULE_FILE)
         if os.path.exists(default_path):
             return default_path
 
@@ -1028,12 +1033,23 @@ class DatabaseCompareHub(ctk.CTkFrame):
     def _comparison_table_config(self, selected_module: str) -> tuple[str, str, str | list[str], tuple[str, ...]]:
         if selected_module == "Customer Addresses":
             return "dbo.OCUSAD", "dbo.OCUSAD", ["CUNO", "ADRT", "ADID"], ("OP",)
-        if selected_module == "Customer Master":
+        if selected_module == CUSTOMER_MASTER_MODULE:
             return "dbo.OCUSMA", "dbo.OCUSMA", "CUNO", ("OK",)
         raise ValueError(f"Unknown module: {selected_module}")
 
     def _module_changed(self) -> None:
+        selected_module = self.module_dropdown.get().strip()
+        if selected_module == CUSTOMER_MASTER_MODULE:
+            self._select_module_default_rule_file(selected_module)
         self._business_unit_changed()
+
+    def _select_module_default_rule_file(self, selected_module: str) -> None:
+        default_rule_file = self._default_rule_file(selected_module)
+        self.rule_file_entry.delete(0, "end")
+        self.rule_file_entry.insert(0, default_rule_file)
+        self.settings["rule_file_path"] = default_rule_file
+        save_app_settings(self.settings)
+        self.load_rule_type_options(show_errors=True)
 
     def _business_unit_changed(self) -> None:
         filter_text = self._selected_table_info()
@@ -1068,7 +1084,7 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     self._set_status(f"Loading exceptions from {os.path.basename(exceptions_file_path)}...")
                     ignored_columns = load_exception_columns(exceptions_file_path)
 
-                if selected_module == "Customer Master":
+                if selected_module == CUSTOMER_MASTER_MODULE:
                     self._set_status(
                         f"Using tables: Source={source_table}, Target={target_table}. "
                         f"Reading source Customer Master for Business Unit: {business_unit}..."

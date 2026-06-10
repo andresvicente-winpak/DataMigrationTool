@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import warnings
 from colorama import Fore, Style
 
 try:
@@ -201,123 +202,125 @@ class TransformEngine:
         else:
             transform_rules = self.rules
 
-        for index, rule in transform_rules.iterrows():
-            target_col = rule['TARGET_FIELD']
-            rule_type = rule['RULE_TYPE']
-            r_src = str(rule.get('SOURCE_FIELD', '')).strip().upper() if pd.notna(rule.get('SOURCE_FIELD')) else ""
-            r_val_raw = rule.get('RULE_VALUE', '')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-            if pd.isna(r_val_raw):
-                r_val = ""
-            else:
-                r_val = str(r_val_raw).strip()
+            for index, rule in transform_rules.iterrows():
+                target_col = rule['TARGET_FIELD']
+                rule_type = rule['RULE_TYPE']
+                r_src = str(rule.get('SOURCE_FIELD', '')).strip().upper() if pd.notna(rule.get('SOURCE_FIELD')) else ""
+                r_val_raw = rule.get('RULE_VALUE', '')
 
-            if r_val.endswith('.0'):
+                if pd.isna(r_val_raw):
+                    r_val = ""
+                else:
+                    r_val = str(r_val_raw).strip()
+
+                if r_val.endswith('.0'):
+                    try:
+                        r_val = str(int(float(r_val)))
+                    except Exception:
+                        pass
+
                 try:
-                    r_val = str(int(float(r_val)))
-                except Exception:
-                    pass
+                    if rule_type == 'DIRECT':
+                        col_name = self._resolve_source_col(r_src, src_map)
+                        if col_name:
+                            df_target[target_col] = df_source[col_name]
 
-            try:
-                if rule_type == 'DIRECT':
-                    col_name = self._resolve_source_col(r_src, src_map)
-                    if col_name:
-                        df_target[target_col] = df_source[col_name]
+                    elif rule_type == 'CONST':
+                        df_target[target_col] = self._normalize_const_value(r_val)
 
-                elif rule_type == 'CONST':
-                    df_target[target_col] = self._normalize_const_value(r_val)
-
-                elif rule_type == 'MAP':
-                    source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
-                    fallback_series, resolved_cols = self._build_map_fallback_series(
-                        df_source=df_source,
-                        source_fields=source_fields,
-                        key_cols=[],
-                        src_map=src_map,
-                        target_col=target_col
-                    )
-
-                    if not r_val:
-                        print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: RULE_VALUE is blank.{Style.RESET_ALL}")
-                        if fallback_series is not None:
-                            df_target[target_col] = fallback_series
-                        continue
-
-                    map_path, key_cols, val_col = self._parse_map_config(r_val)
-                    if not map_path or not key_cols:
-                        print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Could not parse map config '{r_val}'.{Style.RESET_ALL}")
-                        if fallback_series is not None:
-                            df_target[target_col] = fallback_series
-                        continue
-
-                    if not source_fields:
-                        # Enhancement: if SOURCE_FIELD blank, assume key columns are source column names.
-                        source_fields = [k.strip().upper() for k in key_cols]
+                    elif rule_type == 'MAP':
+                        source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
                         fallback_series, resolved_cols = self._build_map_fallback_series(
                             df_source=df_source,
                             source_fields=source_fields,
-                            key_cols=key_cols,
+                            key_cols=[],
                             src_map=src_map,
                             target_col=target_col
                         )
 
-                    print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: RULE_VALUE='{r_val}' | parsed_path='{map_path}' | keys={key_cols} | value={val_col} | source_fields={source_fields}{Style.RESET_ALL}")
-
-                    lookup_dict = self._load_map_file(r_val)
-                    if not lookup_dict:
-                        print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Failed to build map lookup for '{r_val}'.{Style.RESET_ALL}")
-                        if fallback_series is not None:
-                            df_target[target_col] = fallback_series
-                        continue
-
-                    if len(key_cols) == 1 and len(source_fields) == 1:
-                        col_name = self._resolve_source_col(source_fields[0], src_map)
-                        if not col_name:
-                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Source column '{source_fields[0]}' not found. Available: {list(src_map.keys())}{Style.RESET_ALL}")
+                        if not r_val:
+                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: RULE_VALUE is blank.{Style.RESET_ALL}")
+                            if fallback_series is not None:
+                                df_target[target_col] = fallback_series
                             continue
 
-                        normalized_source = df_source[col_name].astype(str).map(self._normalize_map_part)
-                        mapped_series = normalized_source.map(lookup_dict)
-                        mapped_series = mapped_series.where(mapped_series.notna(), df_source[col_name])
-                        miss_count = int(mapped_series.isna().sum())
-                        if miss_count:
-                            print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
-                        df_target[target_col] = mapped_series
-                    else:
-                        if len(source_fields) != len(key_cols):
-                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: SOURCE_FIELD count ({len(source_fields)}) must match map key count ({len(key_cols)}). SOURCE_FIELD={source_fields}, MAP_KEYS={key_cols}.{Style.RESET_ALL}")
+                        map_path, key_cols, val_col = self._parse_map_config(r_val)
+                        if not map_path or not key_cols:
+                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Could not parse map config '{r_val}'.{Style.RESET_ALL}")
+                            if fallback_series is not None:
+                                df_target[target_col] = fallback_series
                             continue
 
-                        resolved_cols = [self._resolve_source_col(f, src_map) for f in source_fields]
-                        if any(c is None for c in resolved_cols):
-                            missing = [source_fields[i] for i, c in enumerate(resolved_cols) if c is None]
-                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Missing source column(s): {missing}. Available: {list(src_map.keys())}. Tip: set SOURCE_FIELD in same order as MAP keys {key_cols}.{Style.RESET_ALL}")
+                        if not source_fields:
+                            # Enhancement: if SOURCE_FIELD blank, assume key columns are source column names.
+                            source_fields = [k.strip().upper() for k in key_cols]
+                            fallback_series, resolved_cols = self._build_map_fallback_series(
+                                df_source=df_source,
+                                source_fields=source_fields,
+                                key_cols=key_cols,
+                                src_map=src_map,
+                                target_col=target_col
+                            )
+
+                        print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: RULE_VALUE='{r_val}' | parsed_path='{map_path}' | keys={key_cols} | value={val_col} | source_fields={source_fields}{Style.RESET_ALL}")
+
+                        lookup_dict = self._load_map_file(r_val)
+                        if not lookup_dict:
+                            print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Failed to build map lookup for '{r_val}'.{Style.RESET_ALL}")
+                            if fallback_series is not None:
+                                df_target[target_col] = fallback_series
                             continue
 
-                        print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: Resolved source columns={resolved_cols}{Style.RESET_ALL}")
+                        if len(key_cols) == 1 and len(source_fields) == 1:
+                            col_name = self._resolve_source_col(source_fields[0], src_map)
+                            if not col_name:
+                                print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Source column '{source_fields[0]}' not found. Available: {list(src_map.keys())}{Style.RESET_ALL}")
+                                continue
 
-                        composite_keys = df_source[resolved_cols].astype(str).apply(
-                            lambda r: '||'.join([self._normalize_map_part(v) for v in r.values]), axis=1
-                        )
-                        mapped_series = composite_keys.map(lookup_dict)
-                        if fallback_series is not None:
-                            mapped_series = mapped_series.where(mapped_series.notna(), fallback_series)
-                        miss_count = int(mapped_series.isna().sum())
-                        if miss_count:
-                            print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no composite map hit.{Style.RESET_ALL}")
-                        df_target[target_col] = mapped_series
+                            normalized_source = df_source[col_name].astype(str).map(self._normalize_map_part)
+                            mapped_series = normalized_source.map(lookup_dict)
+                            mapped_series = mapped_series.where(mapped_series.notna(), df_source[col_name])
+                            miss_count = int(mapped_series.isna().sum())
+                            if miss_count:
+                                print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
+                            df_target[target_col] = mapped_series
+                        else:
+                            if len(source_fields) != len(key_cols):
+                                print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: SOURCE_FIELD count ({len(source_fields)}) must match map key count ({len(key_cols)}). SOURCE_FIELD={source_fields}, MAP_KEYS={key_cols}.{Style.RESET_ALL}")
+                                continue
 
-                elif rule_type == 'PYTHON':
-                    col_name = self._resolve_source_col(r_src, src_map)
+                            resolved_cols = [self._resolve_source_col(f, src_map) for f in source_fields]
+                            if any(c is None for c in resolved_cols):
+                                missing = [source_fields[i] for i, c in enumerate(resolved_cols) if c is None]
+                                print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Missing source column(s): {missing}. Available: {list(src_map.keys())}. Tip: set SOURCE_FIELD in same order as MAP keys {key_cols}.{Style.RESET_ALL}")
+                                continue
 
-                    if col_name:
-                        df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
-                    else:
-                        df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+                            print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: Resolved source columns={resolved_cols}{Style.RESET_ALL}")
 
-            except Exception as e:
-                print(f"{Fore.RED}      [RULE ERROR] {target_col}: {e}{Style.RESET_ALL}")
+                            composite_keys = df_source[resolved_cols].astype(str).apply(
+                                lambda r: '||'.join([self._normalize_map_part(v) for v in r.values]), axis=1
+                            )
+                            mapped_series = composite_keys.map(lookup_dict)
+                            if fallback_series is not None:
+                                mapped_series = mapped_series.where(mapped_series.notna(), fallback_series)
+                            miss_count = int(mapped_series.isna().sum())
+                            if miss_count:
+                                print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no composite map hit.{Style.RESET_ALL}")
+                            df_target[target_col] = mapped_series
 
+                    elif rule_type == 'PYTHON':
+                        col_name = self._resolve_source_col(r_src, src_map)
+
+                        if col_name:
+                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
+                        else:
+                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+
+                except Exception as e:
+                    print(f"{Fore.RED}      [RULE ERROR] {target_col}: {e}{Style.RESET_ALL}")
         return df_target
 
 

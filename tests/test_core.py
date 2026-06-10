@@ -695,3 +695,52 @@ def test_36_compare_tables_supports_customer_address_composite_key():
         "Source Value": "Ship to",
         "Target Value": "Ship-to changed",
     }]
+
+
+def test_37_database_compare_customer_master_default_rule_file(monkeypatch):
+    from modules.gui.CompareDBTool import (
+        CUSTOMER_MASTER_MODULE,
+        DatabaseCompareHub,
+    )
+
+    hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
+    assert hub._default_rule_file(CUSTOMER_MASTER_MODULE) == os.path.join(
+        "config", "rules", "CRS610MI.xlsx"
+    )
+
+
+def test_38_database_compare_customer_master_selection_resets_rule_file(monkeypatch):
+    from modules.gui.CompareDBTool import (
+        CUSTOMER_MASTER_MODULE,
+        DatabaseCompareHub,
+    )
+
+    class FakeDropdown:
+        def get(self):
+            return CUSTOMER_MASTER_MODULE
+
+    class FakeEntry:
+        def __init__(self):
+            self.value = "config/rules/MMS200MI.xlsx"
+
+        def delete(self, start, end):
+            self.value = ""
+
+        def insert(self, index, value):
+            self.value = value
+
+    hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
+    hub.module_dropdown = FakeDropdown()
+    hub.rule_file_entry = FakeEntry()
+    hub.settings = {}
+    calls = []
+    hub.load_rule_type_options = lambda show_errors=True: calls.append(show_errors)
+    hub._business_unit_changed = lambda: None
+
+    monkeypatch.setattr("modules.gui.CompareDBTool.save_app_settings", lambda settings: None)
+
+    hub._module_changed()
+
+    assert hub.rule_file_entry.value == os.path.join("config", "rules", "CRS610MI.xlsx")
+    assert hub.settings["rule_file_path"] == os.path.join("config", "rules", "CRS610MI.xlsx")
+    assert calls == [True]

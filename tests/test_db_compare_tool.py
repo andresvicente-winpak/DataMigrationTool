@@ -84,6 +84,8 @@ def test_supplier_address_query_uses_cidadr_only():
     assert "dbo.CIDMAS" not in query
     assert "dbo.CIDREF" not in query
     assert "SACONO = '20'" in query
+    assert "r.*" not in query
+    assert "m.IDCONO = '20'" in query
 
 
 def test_supplier_compare_remaps_source_suno_before_missing_check(monkeypatch):

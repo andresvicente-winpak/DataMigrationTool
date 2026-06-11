@@ -45,6 +45,7 @@ CUSTOMER_ADDRESSES_MODULE = "Customer Addresses"
 SUPPLIER_MASTER_MODULE = "Supplier Master"
 CUSTOMER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS610MI.xlsx")
 SUPPLIER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS620MI.xlsx")
+SUPPLIER_SUNO_TRANSLATION_FILE = os.path.join("translation_tbl", "OLD_NEW_SUNO.xlsx")
 MODULE_DEFAULT_RULE_FILES = {
     CUSTOMER_MASTER_MODULE: CUSTOMER_MASTER_RULE_FILE,
     SUPPLIER_MASTER_MODULE: SUPPLIER_MASTER_RULE_FILE,
@@ -719,6 +720,73 @@ def prepare_target_for_rule_comparison(
     return coalesce_duplicate_columns(target.rename(columns=rename_map))
 
 
+def resolve_data_file_path(file_path: str) -> str:
+    """Resolve data files using the same project-relative folders as MAP rules."""
+    normalized_path = str(file_path).strip().replace("\\", os.sep)
+    if not normalized_path:
+        raise FileNotFoundError("Data file path is blank.")
+
+    candidates = [normalized_path]
+    base_name = os.path.basename(normalized_path)
+    for folder in ("config", "raw_data", "translation_tbl"):
+        candidates.append(os.path.join(folder, normalized_path))
+        if base_name != normalized_path:
+            candidates.append(os.path.join(folder, base_name))
+
+    for candidate in dict.fromkeys(candidates):
+        if os.path.exists(candidate):
+            return candidate
+
+    raise FileNotFoundError(
+        f"Data file not found: {file_path}. Tried: {', '.join(dict.fromkeys(candidates))}."
+    )
+
+
+def load_single_column_translation_map(
+    file_path: str,
+    key_column: str,
+    value_column: str,
+) -> dict[str, Any]:
+    """Load a normalized one-column translation map from CSV or Excel."""
+    resolved_path = resolve_data_file_path(file_path)
+    if resolved_path.lower().endswith(".csv"):
+        translation_df = pd.read_csv(resolved_path, dtype=str, keep_default_na=False)
+    else:
+        translation_df = pd.read_excel(resolved_path, dtype=str, keep_default_na=False)
+
+    translation_df.columns = [str(col).strip().upper() for col in translation_df.columns]
+    key_column = clean_rule_field_name(key_column)
+    value_column = clean_rule_field_name(value_column)
+
+    missing_columns = [col for col in (key_column, value_column) if col not in translation_df.columns]
+    if missing_columns:
+        raise ValueError(
+            f"Translation file {resolved_path} is missing column(s): {', '.join(missing_columns)}."
+        )
+
+    translation_df[key_column] = translation_df[key_column].map(normalize_compare_value)
+    translation_df = translation_df[translation_df[key_column] != ""]
+    translation_df = translation_df.drop_duplicates(subset=[key_column], keep="first")
+    return pd.Series(translation_df[value_column].values, index=translation_df[key_column]).to_dict()
+
+
+def remap_compare_key_values(
+    df: pd.DataFrame,
+    key_column: str,
+    translation_map: dict[str, Any],
+) -> pd.DataFrame:
+    """Return a copy with comparison key values remapped when a translation exists."""
+    normalized_key = clean_rule_field_name(key_column)
+    if not translation_map or normalized_key not in df.columns:
+        return df
+
+    remapped = df.copy()
+    normalized_values = remapped[normalized_key].map(normalize_compare_value)
+    mapped_values = normalized_values.map(translation_map)
+    remapped[normalized_key] = mapped_values.where(mapped_values.notna(), remapped[normalized_key])
+    return remapped
+
+
 def normalize_primary_key(primary_key: str | Iterable[str]) -> list[str]:
     if isinstance(primary_key, str):
         keys = [primary_key]
@@ -836,6 +904,7 @@ def compare_rule_based_customer_master(
     selected_scope: str = "All",
     table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
+    source_key_translation: tuple[str, str, str] | None = None,
 ) -> pd.DataFrame:
     transformed_source = transform_source_with_rules(
         source_df,
@@ -843,6 +912,19 @@ def compare_rule_based_customer_master(
         selected_rule_type=selected_rule_type,
         selected_scope=selected_scope,
     )
+
+    if source_key_translation:
+        translation_file, translation_key_column, translation_value_column = source_key_translation
+        translation_map = load_single_column_translation_map(
+            translation_file,
+            translation_key_column,
+            translation_value_column,
+        )
+        transformed_source = remap_compare_key_values(
+            transformed_source,
+            translation_key_column,
+            translation_map,
+        )
 
     normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
     return compare_tables(
@@ -1291,6 +1373,11 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     selected_scope=business_unit,
                     table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
+                    source_key_translation=(
+                        SUPPLIER_SUNO_TRANSLATION_FILE,
+                        "SUNO",
+                        "NEWSUNO",
+                    ) if selected_module == SUPPLIER_MASTER_MODULE else None,
                 )
 
                 self._load_results_into_tree(self.results_df)

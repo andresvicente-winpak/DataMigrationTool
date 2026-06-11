@@ -97,6 +97,8 @@ class TransformEngine:
         """
         if not source_fields:
             source_fields = [k.strip().upper() for k in key_cols]
+        if not source_fields:
+            return None, []
 
         resolved_cols = [self._resolve_source_col(f, src_map) for f in source_fields]
         if any(c is None for c in resolved_cols):
@@ -189,7 +191,11 @@ class TransformEngine:
 
     def process(self, df_source):
         df_target = pd.DataFrame(index=df_source.index)
-        src_map = {c.upper(): c for c in df_source.columns}
+        # Working data starts with the raw source columns, then receives each
+        # transformed target column as rules complete. Later rules can therefore
+        # depend on values produced by earlier rules in rule-file order.
+        df_work = df_source.copy()
+        src_map = {c.upper(): c for c in df_work.columns}
 
         # Handle Missing Columns in Rules DataFrame gracefully
         required_cols = ['TARGET_FIELD', 'RULE_TYPE', 'RULE_VALUE', 'SOURCE_FIELD']
@@ -226,7 +232,7 @@ class TransformEngine:
                     if rule_type == 'DIRECT':
                         col_name = self._resolve_source_col(r_src, src_map)
                         if col_name:
-                            df_target[target_col] = df_source[col_name]
+                            df_target[target_col] = df_work[col_name]
 
                     elif rule_type == 'CONST':
                         df_target[target_col] = self._normalize_const_value(r_val)
@@ -234,7 +240,7 @@ class TransformEngine:
                     elif rule_type == 'MAP':
                         source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
                         fallback_series, resolved_cols = self._build_map_fallback_series(
-                            df_source=df_source,
+                            df_source=df_work,
                             source_fields=source_fields,
                             key_cols=[],
                             src_map=src_map,
@@ -258,7 +264,7 @@ class TransformEngine:
                             # Enhancement: if SOURCE_FIELD blank, assume key columns are source column names.
                             source_fields = [k.strip().upper() for k in key_cols]
                             fallback_series, resolved_cols = self._build_map_fallback_series(
-                                df_source=df_source,
+                                df_source=df_work,
                                 source_fields=source_fields,
                                 key_cols=key_cols,
                                 src_map=src_map,
@@ -280,9 +286,9 @@ class TransformEngine:
                                 print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Source column '{source_fields[0]}' not found. Available: {list(src_map.keys())}{Style.RESET_ALL}")
                                 continue
 
-                            normalized_source = df_source[col_name].astype(str).map(self._normalize_map_part)
+                            normalized_source = df_work[col_name].astype(str).map(self._normalize_map_part)
                             mapped_series = normalized_source.map(lookup_dict)
-                            mapped_series = mapped_series.where(mapped_series.notna(), df_source[col_name])
+                            mapped_series = mapped_series.where(mapped_series.notna(), df_work[col_name])
                             miss_count = int(mapped_series.isna().sum())
                             if miss_count:
                                 print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
@@ -300,7 +306,7 @@ class TransformEngine:
 
                             print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: Resolved source columns={resolved_cols}{Style.RESET_ALL}")
 
-                            composite_keys = df_source[resolved_cols].astype(str).apply(
+                            composite_keys = df_work[resolved_cols].astype(str).apply(
                                 lambda r: '||'.join([self._normalize_map_part(v) for v in r.values]), axis=1
                             )
                             mapped_series = composite_keys.map(lookup_dict)
@@ -315,9 +321,13 @@ class TransformEngine:
                         col_name = self._resolve_source_col(r_src, src_map)
 
                         if col_name:
-                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
+                            df_target[target_col] = df_work.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
                         else:
-                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+                            df_target[target_col] = df_work.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+
+                    if target_col in df_target.columns:
+                        df_work[target_col] = df_target[target_col]
+                        src_map = {c.upper(): c for c in df_work.columns}
 
                 except Exception as e:
                     print(f"{Fore.RED}      [RULE ERROR] {target_col}: {e}{Style.RESET_ALL}")

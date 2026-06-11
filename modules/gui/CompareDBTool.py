@@ -43,11 +43,14 @@ STATIC_EXCEPTIONS_FILE = "Exceptions_ComparissonDB.xlsx"
 CUSTOMER_MASTER_MODULE = "Customer Master"
 CUSTOMER_ADDRESSES_MODULE = "Customer Addresses"
 SUPPLIER_MASTER_MODULE = "Supplier Master"
+SUPPLIER_ADDRESSES_MODULE = "Supplier Address"
 CUSTOMER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS610MI.xlsx")
 SUPPLIER_MASTER_RULE_FILE = os.path.join("config", "rules", "CRS620MI.xlsx")
+SUPPLIER_SUNO_TRANSLATION_FILE = os.path.join("translation_tbl", "OLD_NEW_SUNO.xlsx")
 MODULE_DEFAULT_RULE_FILES = {
     CUSTOMER_MASTER_MODULE: CUSTOMER_MASTER_RULE_FILE,
     SUPPLIER_MASTER_MODULE: SUPPLIER_MASTER_RULE_FILE,
+    SUPPLIER_ADDRESSES_MODULE: SUPPLIER_MASTER_RULE_FILE,
 }
 
 
@@ -205,7 +208,6 @@ def available_company_sources(conn) -> list[tuple[str, str, str]]:
         ("dbo", "OCUSAD", "OPCONO"),
         ("dbo", "CIDMAS", "IDCONO"),
         ("dbo", "CIDADR", "SACONO"),
-        ("dbo", "CIDREF", "IRCONO"),
     ]
     return [
         candidate
@@ -316,59 +318,37 @@ def read_target_customer_addresses(
         return read_sql_quiet(query, conn)
 
 
-def supplier_master_query(
-    company: str = "All",
-    include_address: bool = True,
-    include_reference: bool = True,
-) -> str:
-    """Build the Supplier Master validation query across available supplier tables."""
-    where_clauses = ["m.IDSTAT = '20'"]
+def supplier_master_query(company: str = "All") -> str:
+    """Build the Supplier Master validation query against CIDMAS only."""
+    where_clauses = ["IDSTAT = '20'"]
 
     company = str(company).strip()
     if company and company.upper() != "ALL":
-        where_clauses.append(f"m.IDCONO = '{sql_literal(company)}'")
+        where_clauses.append(f"IDCONO = '{sql_literal(company)}'")
 
-    select_parts = ["m.*"]
-    join_parts = []
-
-    if include_address:
-        select_parts.append("a.*")
-        join_parts.append(
-            """
-        LEFT JOIN dbo.CIDADR a
-            ON a.SASUNO = m.IDSUNO
-            AND a.SACONO = m.IDCONO"""
-        )
-
-    if include_reference:
-        select_parts.append("r.*")
-        join_parts.append(
-            """
-        LEFT JOIN dbo.CIDREF r
-            ON r.IRSUNO = m.IDSUNO
-            AND r.IRCONO = m.IDCONO"""
-        )
-
-    joins_sql = "".join(join_parts)
     return f"""
-        SELECT {', '.join(select_parts)}
-        FROM dbo.CIDMAS m{joins_sql}
+        SELECT *
+        FROM dbo.CIDMAS
         WHERE {' AND '.join(where_clauses)};
     """
 
 
-def supplier_table_availability(conn) -> tuple[bool, bool]:
-    """Return optional Supplier Master companion table availability."""
-    include_address = sql_object_exists(conn, "dbo", "CIDADR")
-    include_reference = sql_object_exists(conn, "dbo", "CIDREF")
-    return include_address, include_reference
+def supplier_address_query(company: str = "All") -> str:
+    """Build the Supplier Address validation query against CIDADR only."""
+    where_clauses = []
+
+    company = str(company).strip()
+    if company and company.upper() != "ALL":
+        where_clauses.append(f"SACONO = '{sql_literal(company)}'")
+
+    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    return f"SELECT * FROM dbo.CIDADR {where_sql};"
 
 
 def read_supplier_master(config: SqlServerConfig) -> pd.DataFrame:
-    """Read active source Supplier Master data from CIDMAS plus available context tables."""
+    """Read active source Supplier Master data from CIDMAS."""
     with get_connection(config) as conn:
-        include_address, include_reference = supplier_table_availability(conn)
-        return read_sql_quiet(supplier_master_query(include_address=include_address, include_reference=include_reference), conn)
+        return read_sql_quiet(supplier_master_query(), conn)
 
 
 def read_target_supplier_master(
@@ -377,18 +357,29 @@ def read_target_supplier_master(
 ) -> pd.DataFrame:
     """Read active target Supplier Master data, optionally filtered by IDCONO."""
     with get_connection(config) as conn:
-        include_address, include_reference = supplier_table_availability(conn)
-        return read_sql_quiet(
-            supplier_master_query(company, include_address=include_address, include_reference=include_reference),
-            conn,
-        )
+        return read_sql_quiet(supplier_master_query(company), conn)
+
+
+def read_supplier_addresses(config: SqlServerConfig) -> pd.DataFrame:
+    """Read source Supplier Address data from CIDADR."""
+    with get_connection(config) as conn:
+        return read_sql_quiet(supplier_address_query(), conn)
+
+
+def read_target_supplier_addresses(
+    config: SqlServerConfig,
+    company: str = "All",
+) -> pd.DataFrame:
+    """Read target Supplier Address data, optionally filtered by SACONO."""
+    with get_connection(config) as conn:
+        return read_sql_quiet(supplier_address_query(company), conn)
 
 
 def coalesce_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Collapse duplicate column labels by keeping the first non-empty value.
 
     Supplier comparisons join multiple M3 tables and then strip table prefixes
-    (for example IDSUNO, SASUNO, and IRSUNO all normalize to SUNO). Pandas
+    (for example IDSUNO and SASUNO both normalize to SUNO). Pandas
     returns a DataFrame, not a Series, when selecting a duplicate label, so
     collapse those labels before code expects Series-only column access.
     """
@@ -598,7 +589,7 @@ def source_value(row: pd.Series, source_field: str) -> Any:
     if len(field) > 2 and field[:2].isalpha():
         candidates.append(field[2:])
 
-    for prefix in ("OK", "OP", "ID", "SA", "IR"):
+    for prefix in ("OK", "OP", "ID", "SA"):
         if not field.startswith(prefix):
             candidates.append(f"{prefix}{field}")
 
@@ -672,7 +663,7 @@ def transform_source_with_rules(
     selected_rule_type = selected_rule_type.strip().upper()
     if selected_rule_type and selected_rule_type != "ALL":
         key_fields = {"CUNO", "SUNO"}
-        source_key_fields = {"CUNO", "OKCUNO", "OPCUNO", "SUNO", "IDSUNO", "SASUNO", "IRSUNO"}
+        source_key_fields = {"CUNO", "OKCUNO", "OPCUNO", "SUNO", "IDSUNO", "SASUNO"}
         keep_key = (
             working_rules["TARGET_FIELD"].map(clean_rule_field_name).isin(key_fields)
             | working_rules["SOURCE_FIELD"].map(clean_rule_field_name).isin(source_key_fields)
@@ -719,6 +710,73 @@ def prepare_target_for_rule_comparison(
     return coalesce_duplicate_columns(target.rename(columns=rename_map))
 
 
+def resolve_data_file_path(file_path: str) -> str:
+    """Resolve data files using the same project-relative folders as MAP rules."""
+    normalized_path = str(file_path).strip().replace("\\", os.sep)
+    if not normalized_path:
+        raise FileNotFoundError("Data file path is blank.")
+
+    candidates = [normalized_path]
+    base_name = os.path.basename(normalized_path)
+    for folder in ("config", "raw_data", "translation_tbl"):
+        candidates.append(os.path.join(folder, normalized_path))
+        if base_name != normalized_path:
+            candidates.append(os.path.join(folder, base_name))
+
+    for candidate in dict.fromkeys(candidates):
+        if os.path.exists(candidate):
+            return candidate
+
+    raise FileNotFoundError(
+        f"Data file not found: {file_path}. Tried: {', '.join(dict.fromkeys(candidates))}."
+    )
+
+
+def load_single_column_translation_map(
+    file_path: str,
+    key_column: str,
+    value_column: str,
+) -> dict[str, Any]:
+    """Load a normalized one-column translation map from CSV or Excel."""
+    resolved_path = resolve_data_file_path(file_path)
+    if resolved_path.lower().endswith(".csv"):
+        translation_df = pd.read_csv(resolved_path, dtype=str, keep_default_na=False)
+    else:
+        translation_df = pd.read_excel(resolved_path, dtype=str, keep_default_na=False)
+
+    translation_df.columns = [str(col).strip().upper() for col in translation_df.columns]
+    key_column = clean_rule_field_name(key_column)
+    value_column = clean_rule_field_name(value_column)
+
+    missing_columns = [col for col in (key_column, value_column) if col not in translation_df.columns]
+    if missing_columns:
+        raise ValueError(
+            f"Translation file {resolved_path} is missing column(s): {', '.join(missing_columns)}."
+        )
+
+    translation_df[key_column] = translation_df[key_column].map(normalize_compare_value)
+    translation_df = translation_df[translation_df[key_column] != ""]
+    translation_df = translation_df.drop_duplicates(subset=[key_column], keep="first")
+    return pd.Series(translation_df[value_column].values, index=translation_df[key_column]).to_dict()
+
+
+def remap_compare_key_values(
+    df: pd.DataFrame,
+    key_column: str,
+    translation_map: dict[str, Any],
+) -> pd.DataFrame:
+    """Return a copy with comparison key values remapped when a translation exists."""
+    normalized_key = clean_rule_field_name(key_column)
+    if not translation_map or normalized_key not in df.columns:
+        return df
+
+    remapped = df.copy()
+    normalized_values = remapped[normalized_key].map(normalize_compare_value)
+    mapped_values = normalized_values.map(translation_map)
+    remapped[normalized_key] = mapped_values.where(mapped_values.notna(), remapped[normalized_key])
+    return remapped
+
+
 def normalize_primary_key(primary_key: str | Iterable[str]) -> list[str]:
     if isinstance(primary_key, str):
         keys = [primary_key]
@@ -726,6 +784,27 @@ def normalize_primary_key(primary_key: str | Iterable[str]) -> list[str]:
         keys = list(primary_key)
 
     return [clean_rule_field_name(key) for key in keys if clean_rule_field_name(key)]
+
+
+
+def ensure_compare_key_values(
+    transformed_df: pd.DataFrame,
+    source_df: pd.DataFrame,
+    primary_key: str | Iterable[str],
+) -> pd.DataFrame:
+    """Populate missing transformed comparison keys from source table-prefixed columns."""
+    transformed = normalize_dataframe(transformed_df)
+    source = normalize_dataframe(source_df)
+
+    for key_field in normalize_primary_key(primary_key):
+        if key_field in transformed.columns and not transformed[key_field].replace("", pd.NA).isna().all():
+            continue
+
+        key_values = source.apply(lambda row: source_value(row, key_field), axis=1)
+        if not key_values.replace("", pd.NA).isna().all():
+            transformed[key_field] = key_values
+
+    return transformed
 
 
 def prepare_indexed_compare_frame(
@@ -836,6 +915,7 @@ def compare_rule_based_customer_master(
     selected_scope: str = "All",
     table_prefixes: Sequence[str] = ("OK",),
     ignored_columns: Iterable[str] | None = None,
+    source_key_translation: tuple[str, str, str] | None = None,
 ) -> pd.DataFrame:
     transformed_source = transform_source_with_rules(
         source_df,
@@ -843,6 +923,21 @@ def compare_rule_based_customer_master(
         selected_rule_type=selected_rule_type,
         selected_scope=selected_scope,
     )
+
+    transformed_source = ensure_compare_key_values(transformed_source, source_df, primary_key)
+
+    if source_key_translation:
+        translation_file, translation_key_column, translation_value_column = source_key_translation
+        translation_map = load_single_column_translation_map(
+            translation_file,
+            translation_key_column,
+            translation_value_column,
+        )
+        transformed_source = remap_compare_key_values(
+            transformed_source,
+            translation_key_column,
+            translation_map,
+        )
 
     normalized_target = prepare_target_for_rule_comparison(target_df, table_prefixes=table_prefixes)
     return compare_tables(
@@ -895,7 +990,12 @@ class DatabaseCompareHub(ctk.CTkFrame):
         ctk.CTkLabel(controls, text="Module").grid(row=0, column=0, sticky="e", padx=8, pady=8)
         self.module_dropdown = ctk.CTkComboBox(
             controls,
-            values=[CUSTOMER_MASTER_MODULE, CUSTOMER_ADDRESSES_MODULE, SUPPLIER_MASTER_MODULE],
+            values=[
+                CUSTOMER_MASTER_MODULE,
+                CUSTOMER_ADDRESSES_MODULE,
+                SUPPLIER_MASTER_MODULE,
+                SUPPLIER_ADDRESSES_MODULE,
+            ],
             command=lambda _: self._module_changed(),
         )
         self.module_dropdown.set(CUSTOMER_MASTER_MODULE)
@@ -1169,7 +1269,10 @@ class DatabaseCompareHub(ctk.CTkFrame):
             base = "dbo.OCUSAD"
             business_unit_filter = business_unit_filter_sql(business_unit, "OPCUNO")
         elif selected_module == SUPPLIER_MASTER_MODULE:
-            base = "dbo.CIDMAS plus available supplier context tables where IDSTAT = '20'"
+            base = "dbo.CIDMAS where IDSTAT = '20'"
+            business_unit_filter = ""
+        elif selected_module == SUPPLIER_ADDRESSES_MODULE:
+            base = "dbo.CIDADR"
             business_unit_filter = ""
         else:
             base = "dbo.OCUSMA where OKSTAT = '20'"
@@ -1185,8 +1288,9 @@ class DatabaseCompareHub(ctk.CTkFrame):
         if selected_module == CUSTOMER_ADDRESSES_MODULE:
             return "dbo.OCUSAD", "dbo.OCUSAD", ["CUNO", "ADRT", "ADID"], ("OP",)
         if selected_module == SUPPLIER_MASTER_MODULE:
-            supplier_tables = "dbo.CIDMAS + available dbo.CIDADR/dbo.CIDREF"
-            return supplier_tables, supplier_tables, "SUNO", ("ID", "SA", "IR")
+            return "dbo.CIDMAS", "dbo.CIDMAS", "SUNO", ("ID",)
+        if selected_module == SUPPLIER_ADDRESSES_MODULE:
+            return "dbo.CIDADR", "dbo.CIDADR", ["SUNO", "ADTE", "ADID"], ("SA",)
         if selected_module == CUSTOMER_MASTER_MODULE:
             return "dbo.OCUSMA", "dbo.OCUSMA", "CUNO", ("OK",)
         raise ValueError(f"Unknown module: {selected_module}")
@@ -1275,6 +1379,18 @@ class DatabaseCompareHub(ctk.CTkFrame):
                         f"Reading target Supplier Master data for Company: {selected_company}..."
                     )
                     target_df = read_target_supplier_master(target_config, selected_company)
+                elif selected_module == SUPPLIER_ADDRESSES_MODULE:
+                    self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
+                        "Reading source Supplier Address data..."
+                    )
+                    source_df = read_supplier_addresses(source_config)
+
+                    self._set_status(
+                        f"Using tables: Source={source_table}, Target={target_table}. "
+                        f"Reading target Supplier Address data for Company: {selected_company}..."
+                    )
+                    target_df = read_target_supplier_addresses(target_config, selected_company)
                 else:
                     raise ValueError(f"Unknown module: {selected_module}")
 
@@ -1291,6 +1407,14 @@ class DatabaseCompareHub(ctk.CTkFrame):
                     selected_scope=business_unit,
                     table_prefixes=table_prefixes,
                     ignored_columns=ignored_columns,
+                    source_key_translation=(
+                        SUPPLIER_SUNO_TRANSLATION_FILE,
+                        "SUNO",
+                        "NEWSUNO",
+                    ) if selected_module in {
+                        SUPPLIER_MASTER_MODULE,
+                        SUPPLIER_ADDRESSES_MODULE,
+                    } else None,
                 )
 
                 self._load_results_into_tree(self.results_df)

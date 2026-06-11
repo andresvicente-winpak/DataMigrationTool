@@ -407,7 +407,9 @@ class TransformEngine:
                         else:
                             df_target[target_col] = df_work.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
 
-                    publish_target()
+                    if target_col in df_target.columns:
+                        df_work[target_col] = df_target[target_col]
+                        src_map = {c.upper(): c for c in df_work.columns}
 
                 except Exception as e:
                     print(f"{Fore.RED}      [RULE ERROR] {target_col}: {e}{Style.RESET_ALL}")

@@ -316,6 +316,34 @@ def test_19f_composite_map_resolves_prefixed_source_columns():
     res = TransformEngine(df_r, {}).process(df_s)
     assert res.iloc[0]['COMBINED'] == 'CASH-GROUND'
 
+
+def test_19g_transform_rules_can_chain_using_rule_order():
+    map_path = f"{CONF_DIR}/warehouse_to_facility.csv"
+    pd.DataFrame({'WHLO': ['NEW_WH'], 'FACI': ['FAC_NEW']}).to_csv(map_path, index=False)
+
+    df_s = pd.DataFrame({'WHLO': ['OLD_WH']})
+    df_r = pd.DataFrame([
+        {'TARGET_FIELD': 'WHLO', 'RULE_TYPE': 'PYTHON', 'SOURCE_FIELD': 'WHLO', 'RULE_VALUE': "return 'NEW_WH'"},
+        {'TARGET_FIELD': 'FACI', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'WHLO', 'RULE_VALUE': f'{map_path}|WHLO|FACI'},
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['WHLO'] == 'NEW_WH'
+    assert res.iloc[0]['FACI'] == 'FAC_NEW'
+
+
+def test_19h_python_rules_receive_previously_transformed_row_values():
+    df_s = pd.DataFrame({'A': ['raw']})
+    df_r = pd.DataFrame([
+        {'TARGET_FIELD': 'A', 'RULE_TYPE': 'CONST', 'SOURCE_FIELD': '', 'RULE_VALUE': 'updated'},
+        {'TARGET_FIELD': 'B', 'RULE_TYPE': 'PYTHON', 'SOURCE_FIELD': 'A', 'RULE_VALUE': "return row['A'] + '-seen'"},
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['A'] == 'updated'
+    assert res.iloc[0]['B'] == 'updated-seen'
+
+
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"
     df = pd.DataFrame([

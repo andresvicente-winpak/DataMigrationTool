@@ -791,10 +791,10 @@ def test_41_database_compare_supplier_master_config_uses_supplier_tables():
 
     hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
     assert hub._comparison_table_config(SUPPLIER_MASTER_MODULE) == (
-        "dbo.CIDMAS + dbo.CIDADR + dbo.CIDREF",
-        "dbo.CIDMAS + dbo.CIDADR + dbo.CIDREF",
+        "dbo.CIDMAS",
+        "dbo.CIDMAS",
         "SUNO",
-        ("ID", "SA", "IR"),
+        ("ID",),
     )
 
 
@@ -803,23 +803,45 @@ def test_42_supplier_master_query_filters_active_suppliers_and_company():
 
     query = supplier_master_query("100")
 
-    assert "FROM dbo.CIDMAS m" in query
-    assert "LEFT JOIN dbo.CIDADR a" in query
-    assert "LEFT JOIN dbo.CIDREF r" in query
-    assert "m.IDSTAT = '20'" in query
-    assert "m.IDCONO = '100'" in query
-    assert "a.SASUNO = m.IDSUNO" in query
-    assert "r.IRSUNO = m.IDSUNO" in query
+    assert "FROM dbo.CIDMAS" in query
+    assert "dbo.CIDADR" not in query
+    assert "dbo.CIDREF" not in query
+    assert "IDSTAT = '20'" in query
+    assert "IDCONO = '100'" in query
+
+
+def test_42b_database_compare_supplier_address_config_uses_cidadr_table():
+    from modules.gui.CompareDBTool import (
+        SUPPLIER_ADDRESSES_MODULE,
+        DatabaseCompareHub,
+    )
+
+    hub = DatabaseCompareHub.__new__(DatabaseCompareHub)
+    assert hub._comparison_table_config(SUPPLIER_ADDRESSES_MODULE) == (
+        "dbo.CIDADR",
+        "dbo.CIDADR",
+        ["SUNO", "ADTE", "ADID"],
+        ("SA",),
+    )
+
+
+def test_42c_supplier_address_query_filters_company_without_cidref():
+    from modules.gui.CompareDBTool import supplier_address_query
+
+    query = supplier_address_query("100")
+
+    assert "FROM dbo.CIDADR" in query
+    assert "SACONO = '100'" in query
+    assert "CIDREF" not in query
 
 
 def test_43_supplier_source_value_resolves_table_prefixes():
     from modules.gui.CompareDBTool import source_value
 
-    row = pd.Series({"IDSUNO": "502125", "SAADID": "1", "IRRFTY": "20"})
+    row = pd.Series({"IDSUNO": "502125", "SAADID": "1"})
 
     assert source_value(row, "SUNO") == "502125"
     assert source_value(row, "ADID") == "1"
-    assert source_value(row, "RFTY") == "20"
 
 
 def test_44_supplier_target_normalization_uses_supplier_prefixes():
@@ -829,12 +851,11 @@ def test_44_supplier_target_normalization_uses_supplier_prefixes():
         "IDSUNO": ["502125"],
         "IDSUNM": ["Ingenia"],
         "SAADID": ["1"],
-        "IRRFTY": ["20"],
     })
 
-    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA", "IR"))
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA"))
 
-    assert list(result.columns) == ["SUNO", "SUNM", "ADID", "RFTY"]
+    assert list(result.columns) == ["SUNO", "SUNM", "ADID"]
 
 
 def test_45_database_compare_supplier_master_writes_rule_usage_log(tmp_path, monkeypatch):
@@ -878,11 +899,10 @@ def test_47_supplier_target_normalization_coalesces_duplicate_stripped_columns()
     target = pd.DataFrame({
         "IDSUNO": ["502125", ""],
         "SASUNO": ["502125", "502126"],
-        "IRSUNO": ["502125", "502126"],
         "IDSUNM": ["Ingenia", "Other"],
     })
 
-    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA", "IR"))
+    result = prepare_target_for_rule_comparison(target, table_prefixes=("ID", "SA"))
 
     assert list(result.columns) == ["SUNO", "SUNM"]
     assert result["SUNO"].tolist() == ["502125", "502126"]

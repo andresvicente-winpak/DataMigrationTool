@@ -32,13 +32,25 @@ class ConfigLoader:
             
             mask = df['SCOPE'].apply(check_scope)
             df_filtered = df[mask].copy()
-            
-            # Scoring: Specific Match > Global
+
+            # Scoring: Specific Match > Global. Pick the most-specific row for
+            # each target, then restore the selected rows to the target's original
+            # rule-file position. Transform rules can depend on earlier rules, so
+            # scope selection must not group overrides ahead of unrelated globals
+            # or move an overridden target to the physical override row.
+            df_filtered['_RULE_ORDER'] = range(len(df_filtered))
             df_filtered['SCOPE_SCORE'] = df_filtered['SCOPE'].apply(lambda x: 2 if division_code in str(x).upper() else 1)
-            df_filtered = df_filtered.sort_values('SCOPE_SCORE', ascending=False)
-            
-            final_rules = df_filtered.drop_duplicates(subset=['TARGET_FIELD'], keep='first')
-            self.rules_raw = final_rules.drop(columns=['SCOPE_SCORE'])
+            target_order = df_filtered.groupby('TARGET_FIELD')['_RULE_ORDER'].min()
+            scoped_rules = df_filtered.sort_values(
+                ['TARGET_FIELD', 'SCOPE_SCORE', '_RULE_ORDER'],
+                ascending=[True, False, True],
+                kind='stable'
+            )
+
+            final_rules = scoped_rules.drop_duplicates(subset=['TARGET_FIELD'], keep='first').copy()
+            final_rules['_EFFECTIVE_ORDER'] = final_rules['TARGET_FIELD'].map(target_order)
+            final_rules = final_rules.sort_values('_EFFECTIVE_ORDER', kind='stable')
+            self.rules_raw = final_rules.drop(columns=['SCOPE_SCORE', '_RULE_ORDER', '_EFFECTIVE_ORDER'])
             
             if self.rules_raw.empty:
                 self.rules_raw = pd.DataFrame(columns=['TARGET_FIELD', 'SOURCE_FIELD', 'RULE_TYPE', 'RULE_VALUE', 'SCOPE'])

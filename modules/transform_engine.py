@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import re
 import warnings
 from colorama import Fore, Style
 
@@ -97,6 +98,8 @@ class TransformEngine:
         """
         if not source_fields:
             source_fields = [k.strip().upper() for k in key_cols]
+        if not source_fields:
+            return None, []
 
         resolved_cols = [self._resolve_source_col(f, src_map) for f in source_fields]
         if any(c is None for c in resolved_cols):
@@ -169,6 +172,78 @@ class TransformEngine:
             print(f"{Fore.RED}   [MAP ERROR] Loading '{config_str}': {e}{Style.RESET_ALL}")
             return None
 
+    def _split_source_fields(self, source_field):
+        return [x.strip().upper() for x in str(source_field).split(',') if x.strip()]
+
+    def _extract_python_row_dependencies(self, code_snippet):
+        """Find target-column dependencies referenced through the Python row object."""
+        if not code_snippet:
+            return []
+
+        patterns = [
+            r"row\.get\(\s*['\"]([^'\"]+)['\"]",
+            r"row\s*\[\s*['\"]([^'\"]+)['\"]\s*\]",
+        ]
+        dependencies = []
+        for pattern in patterns:
+            dependencies.extend(re.findall(pattern, str(code_snippet)))
+        return [dep.strip().upper() for dep in dependencies if dep.strip()]
+
+    def _get_rule_dependencies(self, rule):
+        dependencies = self._split_source_fields(rule.get('SOURCE_FIELD', ''))
+        rule_type = str(rule.get('RULE_TYPE', '')).strip().upper()
+        if rule_type == 'PYTHON':
+            dependencies.extend(self._extract_python_row_dependencies(rule.get('RULE_VALUE', '')))
+        return dependencies
+
+    def _order_transform_rules(self, transform_rules):
+        """Order transform rules so target-column dependencies run first.
+
+        Rule-file order is still the default. This only moves rules when a later
+        target column is referenced by another rule's SOURCE_FIELD or Python
+        row access, for example row.get("PUIT") inside the PLCD rule.
+        """
+        rule_entries = list(transform_rules.iterrows())
+        if len(rule_entries) <= 1:
+            return rule_entries
+
+        target_positions = {}
+        for position, (_, rule) in enumerate(rule_entries):
+            target = str(rule.get('TARGET_FIELD', '')).strip().upper()
+            if target:
+                target_positions.setdefault(target, []).append(position)
+
+        edges = {position: set() for position in range(len(rule_entries))}
+        indegree = {position: 0 for position in range(len(rule_entries))}
+
+        for position, (_, rule) in enumerate(rule_entries):
+            target = str(rule.get('TARGET_FIELD', '')).strip().upper()
+            for dependency in self._get_rule_dependencies(rule):
+                if dependency == target:
+                    continue
+                for dependency_position in target_positions.get(dependency, []):
+                    if dependency_position == position or position in edges[dependency_position]:
+                        continue
+                    edges[dependency_position].add(position)
+                    indegree[position] += 1
+
+        ordered_positions = []
+        ready = [position for position in range(len(rule_entries)) if indegree[position] == 0]
+        while ready:
+            position = ready.pop(0)
+            ordered_positions.append(position)
+            for dependent_position in sorted(edges[position]):
+                indegree[dependent_position] -= 1
+                if indegree[dependent_position] == 0:
+                    ready.append(dependent_position)
+
+        if len(ordered_positions) != len(rule_entries):
+            remaining = [position for position in range(len(rule_entries)) if position not in ordered_positions]
+            print(f"{Fore.YELLOW}   [RULE WARNING] Circular rule dependency detected; preserving file order for remaining rules.{Style.RESET_ALL}")
+            ordered_positions.extend(remaining)
+
+        return [rule_entries[position] for position in ordered_positions]
+
     def _execute_python_rule(self, code_snippet, source_val, row_data):
         def lookup_helper(filename, key_col, val_col, lookup_value):
             config_str = f"{filename}|{key_col}|{val_col}"
@@ -189,7 +264,11 @@ class TransformEngine:
 
     def process(self, df_source):
         df_target = pd.DataFrame(index=df_source.index)
-        src_map = {c.upper(): c for c in df_source.columns}
+        # Working data starts with the raw source columns, then receives each
+        # transformed target column as rules complete. Later rules can therefore
+        # depend on values produced by earlier rules in rule-file order.
+        df_work = df_source.copy()
+        src_map = {c.upper(): c for c in df_work.columns}
 
         # Handle Missing Columns in Rules DataFrame gracefully
         required_cols = ['TARGET_FIELD', 'RULE_TYPE', 'RULE_VALUE', 'SOURCE_FIELD']
@@ -205,7 +284,7 @@ class TransformEngine:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
 
-            for index, rule in transform_rules.iterrows():
+            for index, rule in self._order_transform_rules(transform_rules):
                 target_col = rule['TARGET_FIELD']
                 rule_type = rule['RULE_TYPE']
                 r_src = str(rule.get('SOURCE_FIELD', '')).strip().upper() if pd.notna(rule.get('SOURCE_FIELD')) else ""
@@ -222,19 +301,25 @@ class TransformEngine:
                     except Exception:
                         pass
 
+                def publish_target():
+                    nonlocal src_map
+                    if target_col in df_target.columns:
+                        df_work[target_col] = df_target[target_col]
+                        src_map = {c.upper(): c for c in df_work.columns}
+
                 try:
                     if rule_type == 'DIRECT':
                         col_name = self._resolve_source_col(r_src, src_map)
                         if col_name:
-                            df_target[target_col] = df_source[col_name]
+                            df_target[target_col] = df_work[col_name]
 
                     elif rule_type == 'CONST':
                         df_target[target_col] = self._normalize_const_value(r_val)
 
                     elif rule_type == 'MAP':
-                        source_fields = [x.strip().upper() for x in r_src.split(',') if x.strip()]
+                        source_fields = self._split_source_fields(r_src)
                         fallback_series, resolved_cols = self._build_map_fallback_series(
-                            df_source=df_source,
+                            df_source=df_work,
                             source_fields=source_fields,
                             key_cols=[],
                             src_map=src_map,
@@ -245,6 +330,7 @@ class TransformEngine:
                             print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: RULE_VALUE is blank.{Style.RESET_ALL}")
                             if fallback_series is not None:
                                 df_target[target_col] = fallback_series
+                            publish_target()
                             continue
 
                         map_path, key_cols, val_col = self._parse_map_config(r_val)
@@ -252,13 +338,14 @@ class TransformEngine:
                             print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Could not parse map config '{r_val}'.{Style.RESET_ALL}")
                             if fallback_series is not None:
                                 df_target[target_col] = fallback_series
+                            publish_target()
                             continue
 
                         if not source_fields:
                             # Enhancement: if SOURCE_FIELD blank, assume key columns are source column names.
                             source_fields = [k.strip().upper() for k in key_cols]
                             fallback_series, resolved_cols = self._build_map_fallback_series(
-                                df_source=df_source,
+                                df_source=df_work,
                                 source_fields=source_fields,
                                 key_cols=key_cols,
                                 src_map=src_map,
@@ -272,6 +359,7 @@ class TransformEngine:
                             print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Failed to build map lookup for '{r_val}'.{Style.RESET_ALL}")
                             if fallback_series is not None:
                                 df_target[target_col] = fallback_series
+                            publish_target()
                             continue
 
                         if len(key_cols) == 1 and len(source_fields) == 1:
@@ -280,9 +368,9 @@ class TransformEngine:
                                 print(f"{Fore.YELLOW}   [MAP WARNING] {target_col}: Source column '{source_fields[0]}' not found. Available: {list(src_map.keys())}{Style.RESET_ALL}")
                                 continue
 
-                            normalized_source = df_source[col_name].astype(str).map(self._normalize_map_part)
+                            normalized_source = df_work[col_name].astype(str).map(self._normalize_map_part)
                             mapped_series = normalized_source.map(lookup_dict)
-                            mapped_series = mapped_series.where(mapped_series.notna(), df_source[col_name])
+                            mapped_series = mapped_series.where(mapped_series.notna(), df_work[col_name])
                             miss_count = int(mapped_series.isna().sum())
                             if miss_count:
                                 print(f"{Fore.YELLOW}   [MAP DEBUG] {target_col}: {miss_count}/{len(mapped_series)} row(s) had no map hit.{Style.RESET_ALL}")
@@ -300,7 +388,7 @@ class TransformEngine:
 
                             print(f"{Fore.CYAN}   [MAP DEBUG] {target_col}: Resolved source columns={resolved_cols}{Style.RESET_ALL}")
 
-                            composite_keys = df_source[resolved_cols].astype(str).apply(
+                            composite_keys = df_work[resolved_cols].astype(str).apply(
                                 lambda r: '||'.join([self._normalize_map_part(v) for v in r.values]), axis=1
                             )
                             mapped_series = composite_keys.map(lookup_dict)
@@ -315,9 +403,11 @@ class TransformEngine:
                         col_name = self._resolve_source_col(r_src, src_map)
 
                         if col_name:
-                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
+                            df_target[target_col] = df_work.apply(lambda row: self._execute_python_rule(r_val, row[col_name], row), axis=1)
                         else:
-                            df_target[target_col] = df_source.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+                            df_target[target_col] = df_work.apply(lambda row: self._execute_python_rule(r_val, None, row), axis=1)
+
+                    publish_target()
 
                 except Exception as e:
                     print(f"{Fore.RED}      [RULE ERROR] {target_col}: {e}{Style.RESET_ALL}")

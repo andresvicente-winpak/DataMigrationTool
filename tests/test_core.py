@@ -68,6 +68,22 @@ def test_03_config_loader():
     rules, _ = loader.load_config()
     assert len(rules) == 2
 
+
+def test_03b_config_loader_preserves_effective_rule_order_after_scope_selection():
+    rule_path = f"{CONF_DIR}/rules/ORDER_SCOPE_TEST.xlsx"
+    df = pd.DataFrame([
+        {'TARGET_FIELD': 'FIRST', 'SOURCE_FIELD': '', 'RULE_TYPE': 'CONST', 'RULE_VALUE': '1', 'SCOPE': 'GLOBAL'},
+        {'TARGET_FIELD': 'SECOND', 'SOURCE_FIELD': 'FIRST', 'RULE_TYPE': 'DIRECT', 'RULE_VALUE': '', 'SCOPE': 'GLOBAL'},
+        {'TARGET_FIELD': 'FIRST', 'SOURCE_FIELD': '', 'RULE_TYPE': 'CONST', 'RULE_VALUE': '2', 'SCOPE': 'DIV_US'},
+        {'TARGET_FIELD': 'THIRD', 'SOURCE_FIELD': 'SECOND', 'RULE_TYPE': 'DIRECT', 'RULE_VALUE': '', 'SCOPE': 'GLOBAL'},
+    ])
+    df.to_excel(rule_path, sheet_name='Rules', index=False)
+
+    rules, _ = ConfigLoader('ORDER_SCOPE_TEST', rule_dir=f"{CONF_DIR}/rules").load_config('DIV_US')
+
+    assert list(rules['TARGET_FIELD']) == ['FIRST', 'SECOND', 'THIRD']
+    assert rules[rules['TARGET_FIELD'] == 'FIRST'].iloc[0]['RULE_VALUE'] == '2'
+
 def test_04_transform_engine_direct():
     df_source = pd.DataFrame({'MMITNO': ['100', '200']})
     df_rules = pd.DataFrame([{
@@ -315,6 +331,56 @@ def test_19f_composite_map_resolves_prefixed_source_columns():
 
     res = TransformEngine(df_r, {}).process(df_s)
     assert res.iloc[0]['COMBINED'] == 'CASH-GROUND'
+
+
+def test_19g_transform_rules_can_chain_using_rule_order():
+    map_path = f"{CONF_DIR}/warehouse_to_facility.csv"
+    pd.DataFrame({'WHLO': ['NEW_WH'], 'FACI': ['FAC_NEW']}).to_csv(map_path, index=False)
+
+    df_s = pd.DataFrame({'WHLO': ['OLD_WH']})
+    df_r = pd.DataFrame([
+        {'TARGET_FIELD': 'WHLO', 'RULE_TYPE': 'PYTHON', 'SOURCE_FIELD': 'WHLO', 'RULE_VALUE': "return 'NEW_WH'"},
+        {'TARGET_FIELD': 'FACI', 'RULE_TYPE': 'MAP', 'SOURCE_FIELD': 'WHLO', 'RULE_VALUE': f'{map_path}|WHLO|FACI'},
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['WHLO'] == 'NEW_WH'
+    assert res.iloc[0]['FACI'] == 'FAC_NEW'
+
+
+def test_19h_python_rules_receive_previously_transformed_row_values():
+    df_s = pd.DataFrame({'A': ['raw']})
+    df_r = pd.DataFrame([
+        {'TARGET_FIELD': 'A', 'RULE_TYPE': 'CONST', 'SOURCE_FIELD': '', 'RULE_VALUE': 'updated'},
+        {'TARGET_FIELD': 'B', 'RULE_TYPE': 'PYTHON', 'SOURCE_FIELD': 'A', 'RULE_VALUE': "return row['A'] + '-seen'"},
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['A'] == 'updated'
+    assert res.iloc[0]['B'] == 'updated-seen'
+
+
+def test_19i_python_rule_dependencies_are_ordered_before_dependents():
+    df_s = pd.DataFrame({'MBSUNO': [''], 'MBSUWH': ['WH1'], 'PLCD': ['01']})
+    df_r = pd.DataFrame([
+        {
+            'TARGET_FIELD': 'PLCD',
+            'RULE_TYPE': 'PYTHON',
+            'SOURCE_FIELD': 'PLCD',
+            'RULE_VALUE': 'puit = str(row.get("PUIT", row.get("MMPUIT", ""))).strip()\nif puit == "3":\n    return "05"\nreturn source',
+        },
+        {
+            'TARGET_FIELD': 'PUIT',
+            'RULE_TYPE': 'PYTHON',
+            'SOURCE_FIELD': 'PUIT',
+            'RULE_VALUE': 'mbsuwh = str(row.get("MBSUWH", "")).strip()\nif mbsuwh != "":\n    return "3"\nreturn ""',
+        },
+    ])
+
+    res = TransformEngine(df_r, {}).process(df_s)
+    assert res.iloc[0]['PUIT'] == '3'
+    assert res.iloc[0]['PLCD'] == '05'
+
 
 def test_20_scope_override():
     rule_path = f"{CONF_DIR}/rules/SCOPE_TEST.xlsx"

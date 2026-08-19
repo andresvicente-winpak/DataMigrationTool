@@ -129,16 +129,16 @@ class M3MigrationApp(ctk.CTk):
         self.frames[name].pack(fill="both", expand=True)
 
     def open_documentation(self):
-        """Open the MkDocs User Guide in the default web browser."""
-        docs_url = os.environ.get("M3_USER_GUIDE_URL", "http://localhost:8000/")
-        try:
-            if not webbrowser.open_new_tab(docs_url):
-                raise RuntimeError("No web browser is available")
-        except Exception as e:
+        """Open the built MkDocs documentation."""
+
+        doc_path = os.path.abspath("site/index.html")
+
+        if not os.path.exists(doc_path):
             messagebox.showerror(
-                "Could Not Open User Guide",
-                f"Could not open {docs_url}\n\n"
-                "Make sure the documentation server is running with "
-                "'mkdocs serve', then try again.\n\n"
-                f"Details: {e}",
+                "Documentation Not Found",
+                "The User Guide could not be found.\n\n"
+                "Run 'mkdocs build' first."
             )
+            return
+
+        webbrowser.open(f"file:///{doc_path.replace(os.sep, '/')}")

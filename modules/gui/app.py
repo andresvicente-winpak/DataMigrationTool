@@ -2,8 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 import sys
 import os
-import platform
-import subprocess
+import webbrowser
 from tkinter import messagebox
 
 # Import Hubs
@@ -63,7 +62,7 @@ class M3MigrationApp(ctk.CTk):
         ctk.CTkFrame(self.sidebar, fg_color="transparent").pack(fill="both", expand=True) # Spacer
         self.btn_help = ctk.CTkButton(self.sidebar, text="  📘 User Guide  ", height=40, anchor="w", fg_color="transparent", text_color="#AAAAAA", hover_color="#333333", command=self.open_documentation)
         self.btn_help.pack(fill="x", padx=10, pady=20)
-        bind_context_help(self.btn_help, "Opens the PDF User Manual.\n\n(Run pack_project.py to generate the PDF if missing).")
+        bind_context_help(self.btn_help, "Opens the MkDocs User Guide in your web browser.\n\nStart it with 'mkdocs serve' if it is not already running.")
 
         # --- RIGHT SIDE (Splitter) ---
         self.splitter = tk.PanedWindow(self, orient="vertical", bg="#2B2B2B", bd=0, sashwidth=10, sashrelief="raised", sashpad=0)
@@ -130,19 +129,16 @@ class M3MigrationApp(ctk.CTk):
         self.frames[name].pack(fill="both", expand=True)
 
     def open_documentation(self):
-        """Opens the User Guide PDF in the default system viewer."""
-        doc_path = "M3_Migration_User_Guide.pdf"
-        
-        if not os.path.exists(doc_path):
-            messagebox.showinfo("Docs Not Found", "User Guide PDF not found.\nPlease run 'pack_project.py' or 'generate_docs.py' to create it.")
-            return
-
+        """Open the MkDocs User Guide in the default web browser."""
+        docs_url = os.environ.get("M3_USER_GUIDE_URL", "http://localhost:8000/")
         try:
-            if platform.system() == 'Darwin':       # macOS
-                subprocess.call(('open', doc_path))
-            elif platform.system() == 'Windows':    # Windows
-                os.startfile(doc_path)
-            else:                                   # linux variants
-                subprocess.call(('xdg-open', doc_path))
+            if not webbrowser.open_new_tab(docs_url):
+                raise RuntimeError("No web browser is available")
         except Exception as e:
-            messagebox.showerror("Error", f"Could not open documentation: {e}")
+            messagebox.showerror(
+                "Could Not Open User Guide",
+                f"Could not open {docs_url}\n\n"
+                "Make sure the documentation server is running with "
+                "'mkdocs serve', then try again.\n\n"
+                f"Details: {e}",
+            )

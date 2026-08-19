@@ -1,0 +1,48 @@
+site_name: Data Migration Tool
+site_description: Documentation for the M3 Data Migration Platform
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+      - Overview: getting-started/overview.md
+      - First Migration: getting-started/first-migration.md
+      
+  - Configuration:
+      - Overview: configuration/overview.md
+      - MCO Import: configuration/mco-import.md
+      - Source Map: configuration/source-map.md
+      - Migration Map: configuration/migration-map.md
+      - Business Units: configuration/business-units.md
+      - Database Configuration: configuration/database-configuration.md
+
+  - Run Migration:
+      - Overview: migration/overview.md
+      - Standard Migration: migration/standard-migration.md
+      - Auto Detect Migration: migration/auto-detect.md
+      - Load by ID Migration: migration/load-by-id.md
+      - Batch Migration: migration/batch-migration.md
+
+  - Rules:
+      - Overview: rules/overview.md
+      - Understanding the Rule File: rules/rule-file.md
+      - MAP rules: rules/map.md
+      - FILTER rules: rules/filter.md
+      - PYTHON Rules: rules/python.md
+
+  - Administration:
+      - Rule history: administration/rules-history.md
+      - Snapshots/versioning: administration/snapshots.md
+      - Sync/Merge: administration/sync-merge.md
+      
+  - Utilities:
+      - Copy Sheet: utilities/copy-sheet.md
+      - Merge Files: utilities/merge-files.md
+      - Script Library: utilities/script-library.md
+      
+  - Troubleshooting:
+      - Common Errors: troubleshooting/common-errors.md
+      - FAQ: troubleshooting/faq.md

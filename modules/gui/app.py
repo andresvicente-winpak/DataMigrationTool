@@ -1,6 +1,9 @@
 import customtkinter as ctk
 import tkinter as tk
 import sys
+import time
+import socket
+import subprocess
 import os
 import webbrowser
 from tkinter import messagebox
@@ -129,11 +132,11 @@ class M3MigrationApp(ctk.CTk):
         self.frames[name].pack(fill="both", expand=True)
 
     def open_documentation(self):
-        """Open the built MkDocs documentation."""
+        """Open the built MkDocs documentation using a local HTTP server."""
 
-        doc_path = os.path.abspath("site/index.html")
+        site_dir = os.path.abspath("site")
 
-        if not os.path.exists(doc_path):
+        if not os.path.exists(os.path.join(site_dir, "index.html")):
             messagebox.showerror(
                 "Documentation Not Found",
                 "The User Guide could not be found.\n\n"
@@ -141,4 +144,29 @@ class M3MigrationApp(ctk.CTk):
             )
             return
 
-        webbrowser.open(f"file:///{doc_path.replace(os.sep, '/')}")
+        port = 8765
+
+        def is_port_open():
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                return sock.connect_ex(("127.0.0.1", port)) == 0
+
+        if not is_port_open():
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "http.server",
+                    str(port),
+                    "--directory",
+                    site_dir
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW
+                if os.name == "nt"
+                else 0
+            )
+
+            time.sleep(0.5)
+
+        webbrowser.open(f"http://127.0.0.1:{port}/")

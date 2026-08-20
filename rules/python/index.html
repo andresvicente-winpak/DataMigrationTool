@@ -1,0 +1,2347 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the M3 Data Migration Platform">
+      
+      
+      
+      
+        <link rel="prev" href="../filter/">
+      
+      
+        <link rel="next" href="../../administration/rules-history/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>PYTHON Rules - Data Migration Tool</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#python-rules" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Data Migration Tool" class="md-header__button md-logo" aria-label="Data Migration Tool" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Data Migration Tool
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PYTHON Rules
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Data Migration Tool" class="md-nav__button md-logo" aria-label="Data Migration Tool" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Data Migration Tool
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/first-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/mco-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCO Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/source-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/migration-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/business-units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Business Units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/database-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Migration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Run Migration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/standard-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standard Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/auto-detect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto Detect Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/load-by-id/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load by ID Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/batch-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Rules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rule-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding the Rule File
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAP rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../filter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FILTER rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PYTHON Rules
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PYTHON Rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use-a-python-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use a Python Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        row
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-alternative-column-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling Alternative Column Names
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#normalize-values-before-comparing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normalize Values Before Comparing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-plcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: PLCD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#condition-order-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition Order Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blank-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blank Values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returning-the-original-source-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Returning the Original Source Value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returning-a-constant-from-a-condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Returning a Constant from a Condition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Conditions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-a-python-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing a Python Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-source-column-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Source column name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-actual-source-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Actual source value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-data-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-condition-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Condition order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/rules-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rule history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/snapshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshots/versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/sync-merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sync/Merge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utilities
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/copy-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Copy Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/merge-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/script-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Script Library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Troubleshooting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/common-errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Errors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#when-to-use-a-python-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to Use a Python Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#available-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Available Variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Available Variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        row
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-alternative-column-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling Alternative Column Names
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#normalize-values-before-comparing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Normalize Values Before Comparing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-plcd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: PLCD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#condition-order-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Condition Order Matters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blank-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blank Values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returning-the-original-source-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Returning the Original Source Value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#returning-a-constant-from-a-condition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Returning a Constant from a Condition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Conditions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-a-python-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing a Python Rule
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-source-column-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Source column name
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-actual-source-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Actual source value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-data-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-condition-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Condition order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommended-practice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Practice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="python-rules">Python Rules</h1>
+<p>A <code>PYTHON</code> rule is used when a target field requires transformation logic that cannot be handled by a simple <code>DIRECT</code>, <code>CONST</code>, or <code>MAP</code> rule.</p>
+<p>Python rules allow the Data Migration Tool to evaluate values from the complete source row and apply custom business logic before generating the M3 target value.</p>
+<hr />
+<h2 id="when-to-use-a-python-rule">When to Use a Python Rule</h2>
+<p>Use a Python rule when the target value depends on:</p>
+<ul>
+<li>Multiple source fields</li>
+<li>Conditional logic</li>
+<li>Multiple business conditions</li>
+<li>String manipulation</li>
+<li>Numeric calculations</li>
+<li>Blank or null handling</li>
+<li>A combination of the above</li>
+</ul>
+<p>For example:</p>
+<pre><code class="language-text">ITNO ──┐
+       │
+ITTY ──┼──► Python Rule ──► PLCD
+       │
+PUIT ──┘
+</code></pre>
+<p>In this case, <code>PLCD</code> cannot be determined from only one source field.</p>
+<hr />
+<h2 id="basic-structure">Basic Structure</h2>
+<p>A Python rule normally reads values, evaluates the business conditions, and returns the resulting target value.</p>
+<p>Example:</p>
+<pre><code class="language-python">puit = str(row.get(&quot;PUIT&quot;, row.get(&quot;MBPUIT&quot;, &quot;&quot;))).strip()
+
+if puit == &quot;1&quot;:
+    return &quot;00&quot;
+
+if puit == &quot;2&quot;:
+    return &quot;11&quot;
+
+if puit == &quot;3&quot;:
+    return &quot;12&quot;
+
+return &quot;&quot;
+</code></pre>
+<p>The final <code>return</code> determines the value written to the target field.</p>
+<hr />
+<h2 id="available-variables">Available Variables</h2>
+<h3 id="source"><code>source</code></h3>
+<p><code>source</code> represents the value obtained from the field defined in <code>SOURCE_FIELD</code>.</p>
+<p>Example:</p>
+<pre><code class="language-python">if source is None:
+    return &quot;&quot;
+
+return str(source).strip()
+</code></pre>
+<p>For simple transformations, using <code>source</code> may be sufficient.</p>
+<hr />
+<h3 id="row"><code>row</code></h3>
+<p><code>row</code> provides access to the complete source record.</p>
+<p>For example:</p>
+<pre><code class="language-python">itno = row.get(&quot;MBITNO&quot;, &quot;&quot;)
+puit = row.get(&quot;MBPUIT&quot;, &quot;&quot;)
+</code></pre>
+<p>This makes it possible for one target rule to depend on multiple source columns.</p>
+<p>Example:</p>
+<pre><code class="language-python">itty = str(row.get(&quot;MMITTY&quot;, &quot;&quot;)).strip().upper()
+puit = str(row.get(&quot;MBPUIT&quot;, &quot;&quot;)).strip()
+
+if itty == &quot;FG&quot; and puit == &quot;1&quot;:
+    return &quot;02&quot;
+
+return &quot;&quot;
+</code></pre>
+<hr />
+<h2 id="handling-alternative-column-names">Handling Alternative Column Names</h2>
+<p>Source files may not always use the same column naming convention.</p>
+<p>For example, a field could appear as:</p>
+<pre><code class="language-text">PUIT
+</code></pre>
+<p>or:</p>
+<pre><code class="language-text">MBPUIT
+</code></pre>
+<p>A Python rule can support both:</p>
+<pre><code class="language-python">puit = str(
+    row.get(&quot;PUIT&quot;, row.get(&quot;MBPUIT&quot;, &quot;&quot;))
+).strip()
+</code></pre>
+<p>The rule first searches for <code>PUIT</code>.</p>
+<p>If it does not exist, it searches for <code>MBPUIT</code>.</p>
+<p>If neither exists, it returns an empty string.</p>
+<p>This pattern can also be used for other fields:</p>
+<pre><code class="language-python">itno = str(
+    row.get(&quot;ITNO&quot;, row.get(&quot;MBITNO&quot;, &quot;&quot;))
+).strip().upper()
+
+itty = str(
+    row.get(&quot;ITTY&quot;, row.get(&quot;MMITTY&quot;, &quot;&quot;))
+).strip().upper()
+</code></pre>
+<hr />
+<h2 id="normalize-values-before-comparing">Normalize Values Before Comparing</h2>
+<p>Values should normally be cleaned before conditions are evaluated.</p>
+<p>For text fields:</p>
+<pre><code class="language-python">value = str(row.get(&quot;FIELD&quot;, &quot;&quot;)).strip().upper()
+</code></pre>
+<p>This performs three operations:</p>
+<pre><code class="language-text">Convert to string
+       ↓
+Remove spaces
+       ↓
+Convert to uppercase
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-text">&quot; fg &quot;
+</code></pre>
+<p>becomes:</p>
+<pre><code class="language-text">&quot;FG&quot;
+</code></pre>
+<p>This helps prevent conditions from failing because of capitalization or unwanted spaces.</p>
+<hr />
+<h2 id="example-plcd">Example: PLCD</h2>
+<p>Consider the following business requirement:</p>
+<pre><code class="language-text">If ITNO starts with RS9 or ZZ
+    → 00
+
+If ITTY is RM or PK and PUIT = 2
+    → 01
+
+If ITTY is SF or FG and PUIT = 1
+    → 02
+
+If PUIT = 3
+    → 05
+</code></pre>
+<p>The Python rule can be written as:</p>
+<pre><code class="language-python">itno = str(
+    row.get(&quot;ITNO&quot;, row.get(&quot;MBITNO&quot;, &quot;&quot;))
+).strip().upper()
+
+itty = str(
+    row.get(&quot;ITTY&quot;, row.get(&quot;MMITTY&quot;, &quot;&quot;))
+).strip().upper()
+
+puit = str(
+    row.get(&quot;PUIT&quot;, row.get(&quot;MBPUIT&quot;, &quot;&quot;))
+).strip()
+
+if itno.startswith((&quot;RS9&quot;, &quot;ZZ&quot;)):
+    return &quot;00&quot;
+
+if itty in (&quot;RM&quot;, &quot;PK&quot;) and puit == &quot;2&quot;:
+    return &quot;01&quot;
+
+if itty in (&quot;SF&quot;, &quot;FG&quot;) and puit == &quot;1&quot;:
+    return &quot;02&quot;
+
+if puit == &quot;3&quot;:
+    return &quot;05&quot;
+
+return &quot;&quot;
+</code></pre>
+<hr />
+<h2 id="condition-order-matters">Condition Order Matters</h2>
+<p>Python rules are evaluated from top to bottom.</p>
+<p>Consider:</p>
+<pre><code class="language-python">if puit == &quot;3&quot;:
+    return &quot;05&quot;
+
+if itty == &quot;FG&quot; and puit == &quot;3&quot;:
+    return &quot;02&quot;
+</code></pre>
+<p>If:</p>
+<pre><code class="language-text">ITTY = FG
+PUIT = 3
+</code></pre>
+<p>the result will be:</p>
+<pre><code class="language-text">05
+</code></pre>
+<p>The second condition will never be evaluated because the first condition already returned a value.</p>
+<p>Therefore, condition priority must match the business requirement.</p>
+<p>!!! warning
+    When multiple conditions can match the same record, place the highest-priority condition first.</p>
+<hr />
+<h2 id="blank-values">Blank Values</h2>
+<p>Python rules should explicitly consider blank values when necessary.</p>
+<p>Example:</p>
+<pre><code class="language-python">value = str(source).strip() if source is not None else &quot;&quot;
+
+if value == &quot;&quot;:
+    return &quot;&quot;
+</code></pre>
+<p>This prevents blank values from accidentally being interpreted as meaningful data.</p>
+<hr />
+<h2 id="returning-the-original-source-value">Returning the Original Source Value</h2>
+<p>Sometimes a transformation should apply only under certain conditions and otherwise preserve the source value.</p>
+<p>Example:</p>
+<pre><code class="language-python">value = str(source).strip() if source is not None else &quot;&quot;
+
+if value == &quot;PQ&quot;:
+    return &quot;QC&quot;
+
+return value
+</code></pre>
+<p>This means:</p>
+<pre><code class="language-text">PQ → QC
+ON → ON
+MB → MB
+</code></pre>
+<hr />
+<h2 id="returning-a-constant-from-a-condition">Returning a Constant from a Condition</h2>
+<p>Python rules can also return constants based on another field.</p>
+<p>Example requirement:</p>
+<pre><code class="language-text">If PUIT = 1 → NOR
+If PUIT = 2 → INV
+If PUIT = 3 → D22
+</code></pre>
+<p>Rule:</p>
+<pre><code class="language-python">puit = str(
+    row.get(&quot;PUIT&quot;, row.get(&quot;MBPUIT&quot;, &quot;&quot;))
+).strip()
+
+if puit == &quot;1&quot;:
+    return &quot;NOR&quot;
+
+if puit == &quot;2&quot;:
+    return &quot;INV&quot;
+
+if puit == &quot;3&quot;:
+    return &quot;D22&quot;
+
+return &quot;&quot;
+</code></pre>
+<hr />
+<h2 id="multiple-conditions">Multiple Conditions</h2>
+<p>Conditions can be combined using <code>and</code>.</p>
+<p>Example:</p>
+<pre><code class="language-python">itty = str(row.get(&quot;MMITTY&quot;, &quot;&quot;)).strip().upper()
+eoqm = str(row.get(&quot;MBEOQM&quot;, &quot;&quot;)).strip()
+
+if itty == &quot;FG&quot; and eoqm == &quot;12&quot;:
+    return &quot;010&quot;
+
+return &quot;020&quot;
+</code></pre>
+<p>This represents:</p>
+<pre><code class="language-text">ITTY = FG
+   AND
+EOQM = 12
+    │
+    ▼
+   010
+
+Otherwise
+    │
+    ▼
+   020
+</code></pre>
+<hr />
+<h2 id="testing-a-python-rule">Testing a Python Rule</h2>
+<p>A Python rule should always be tested using known source records.</p>
+<p>For example:</p>
+<table>
+<thead>
+<tr>
+<th>ITNO</th>
+<th>ITTY</th>
+<th style="text-align: right;">PUIT</th>
+<th>Expected PLCD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RS90001</td>
+<td>RM</td>
+<td style="text-align: right;">2</td>
+<td>00</td>
+</tr>
+<tr>
+<td>AP32508</td>
+<td>FG</td>
+<td style="text-align: right;">1</td>
+<td>02</td>
+</tr>
+<tr>
+<td>TEST01</td>
+<td>PK</td>
+<td style="text-align: right;">2</td>
+<td>01</td>
+</tr>
+<tr>
+<td>TEST02</td>
+<td>FG</td>
+<td style="text-align: right;">3</td>
+<td>05</td>
+</tr>
+</tbody>
+</table>
+<p>After running the migration, compare the generated output against the expected results.</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>When a Python rule produces an unexpected value, verify the following:</p>
+<h3 id="1-source-column-name">1. Source column name</h3>
+<p>Confirm that the rule is reading the correct source column.</p>
+<p>For example:</p>
+<pre><code class="language-text">MMITTY
+</code></pre>
+<p>is different from:</p>
+<pre><code class="language-text">MBITTY
+</code></pre>
+<p>A rule referencing the wrong column may return a blank value without producing an obvious error.</p>
+<hr />
+<h3 id="2-actual-source-value">2. Actual source value</h3>
+<p>Check the raw source record.</p>
+<p>Do not assume the value in the generated output represents what existed in the source.</p>
+<hr />
+<h3 id="3-data-type">3. Data type</h3>
+<p>Values loaded from Excel may be represented differently than expected.</p>
+<p>For migration codes, converting values to strings before comparison is generally recommended.</p>
+<pre><code class="language-python">puit = str(row.get(&quot;MBPUIT&quot;, &quot;&quot;)).strip()
+</code></pre>
+<p>Then compare:</p>
+<pre><code class="language-python">if puit == &quot;3&quot;:
+</code></pre>
+<p>rather than:</p>
+<pre><code class="language-python">if puit == 3:
+</code></pre>
+<hr />
+<h3 id="4-condition-order">4. Condition order</h3>
+<p>Verify that an earlier condition is not returning a value before the intended condition is reached.</p>
+<hr />
+<h3 id="5-dependencies">5. Dependencies</h3>
+<p>Identify every source field required by the rule.</p>
+<p>For example:</p>
+<pre><code class="language-text">PLCD
+ │
+ ├── ITNO
+ ├── ITTY
+ └── PUIT
+</code></pre>
+<p>When troubleshooting <code>PLCD</code>, all three source values should be reviewed.</p>
+<hr />
+<h2 id="recommended-practice">Recommended Practice</h2>
+<p>Keep Python rules focused on the business requirement.</p>
+<p>Prefer:</p>
+<pre><code class="language-python">puit = str(row.get(&quot;MBPUIT&quot;, &quot;&quot;)).strip()
+
+if puit == &quot;1&quot;:
+    return &quot;00&quot;
+
+if puit == &quot;2&quot;:
+    return &quot;11&quot;
+
+if puit == &quot;3&quot;:
+    return &quot;12&quot;
+
+return &quot;&quot;
+</code></pre>
+<p>over unnecessarily complex logic.</p>
+<p>A rule should be understandable by another migration team member who needs to maintain it later.</p>
+<hr />
+<h2 id="next-steps">Next Steps</h2>
+<p>See:</p>
+<ul>
+<li><a href="../rule-file/">Understanding the Rule Configuration</a></li>
+<li><a href="../map/">MAP Rules</a></li>
+<li><a href="../filter/">FILTER Rules</a></li>
+<li>Rule Troubleshooting</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

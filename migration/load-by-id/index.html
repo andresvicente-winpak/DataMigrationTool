@@ -1,0 +1,1937 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the M3 Data Migration Platform">
+      
+      
+      
+      
+        <link rel="prev" href="../auto-detect/">
+      
+      
+        <link rel="next" href="../batch-migration/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Load by ID Migration - Data Migration Tool</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#load-by-id" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Data Migration Tool" class="md-header__button md-logo" aria-label="Data Migration Tool" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Data Migration Tool
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Load by ID Migration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Data Migration Tool" class="md-nav__button md-logo" aria-label="Data Migration Tool" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Data Migration Tool
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/first-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/mco-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MCO Import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/source-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/migration-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/business-units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Business Units
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/database-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Migration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Run Migration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../standard-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Standard Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../auto-detect/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auto Detect Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load by ID Migration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load by ID Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batch-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Rules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/rule-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding the Rule File
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MAP rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/filter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FILTER rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rules/python/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PYTHON Rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/rules-history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rule history
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/snapshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshots/versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/sync-merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sync/Merge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utilities
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/copy-sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Copy Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/merge-files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Merge Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../utilities/script-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Script Library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Troubleshooting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/common-errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Common Errors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="load-by-id">Load by ID</h1>
+<p>The <strong>Load by ID</strong> migration mode is used when only specific records need to be migrated instead of processing the entire source dataset.</p>
+<p>This is useful for testing, troubleshooting, validation, and targeted migrations.</p>
+<hr />
+<h2 id="purpose">Purpose</h2>
+<p>A Standard Migration typically processes the complete configured source:</p>
+<pre><code class="language-text">Complete Source Dataset
+        │
+        ▼
+Transformation
+        │
+        ▼
+M3 Output
+</code></pre>
+<p>Load by ID adds a record-selection step:</p>
+<pre><code class="language-text">Complete Source Dataset
+        │
+        ▼
+Select Specific ID(s)
+        │
+        ▼
+Matching Records
+        │
+        ▼
+Transformation
+        │
+        ▼
+M3 Output
+</code></pre>
+<p>This allows a smaller population to be processed without changing the original source.</p>
+<hr />
+<h1 id="when-to-use-load-by-id">When to Use Load by ID</h1>
+<p>Load by ID is particularly useful for:</p>
+<ul>
+<li>Testing transformation rules</li>
+<li>Troubleshooting a specific record</li>
+<li>Validating a new rule</li>
+<li>Comparing expected and actual values</li>
+<li>Reprocessing selected records</li>
+<li>Creating a small migration sample</li>
+<li>Investigating source-data issues</li>
+</ul>
+<p>For example, instead of migrating thousands of Item Master records, you may want to test:</p>
+<pre><code class="language-text">AP32508
+AP32508-2P
+RS90001
+</code></pre>
+<hr />
+<h1 id="accessing-load-by-id">Accessing Load by ID</h1>
+<p>Navigate to:</p>
+<p><strong>Run Migration → Load by ID</strong></p>
+<p>The Load by ID screen allows the user to configure a targeted migration.</p>
+<hr />
+<h1 id="basic-workflow">Basic Workflow</h1>
+<p>A Load by ID migration follows this general process:</p>
+<pre><code class="language-text">Select Migration Configuration
+        │
+        ▼
+Select Source
+        │
+        ▼
+Define Record ID(s)
+        │
+        ▼
+Retrieve Matching Records
+        │
+        ▼
+Apply FILTER Rules
+        │
+        ▼
+Apply Transformation Rules
+        │
+        ▼
+Generate SDT Output
+</code></pre>
+<p>The transformation process itself remains based on the same Rule Configuration used by the other migration modes.</p>
+<hr />
+<h1 id="record-identification">Record Identification</h1>
+<p>The ID represents the source value used to locate the record or records that should be processed.</p>
+<p>For Item Master, for example, the identifier may be:</p>
+<pre><code class="language-text">ITNO
+</code></pre>
+<p>or the corresponding legacy field:</p>
+<pre><code class="language-text">MBITNO
+</code></pre>
+<p>Example source:</p>
+<table>
+<thead>
+<tr>
+<th>MBITNO</th>
+<th>MBITTY</th>
+<th>MBPUIT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AP32508</td>
+<td>FG</td>
+<td>1</td>
+</tr>
+<tr>
+<td>AP32508-2P</td>
+<td>FG</td>
+<td>3</td>
+</tr>
+<tr>
+<td>TEST001</td>
+<td>RM</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>If the requested ID is:</p>
+<pre><code class="language-text">AP32508
+</code></pre>
+<p>the targeted dataset becomes:</p>
+<table>
+<thead>
+<tr>
+<th>MBITNO</th>
+<th>MBITTY</th>
+<th>MBPUIT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AP32508</td>
+<td>FG</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Only the selected record continues through the migration process.</p>
+<hr />
+<h1 id="multiple-ids">Multiple IDs</h1>
+<p>Load by ID can be useful when a small group of related records needs to be tested.</p>
+<p>For example:</p>
+<pre><code class="language-text">AP32508
+AP32508-2P
+AP32508-3P
+</code></pre>
+<p>Conceptually:</p>
+<pre><code class="language-text">Requested IDs
+     │
+     ├── AP32508
+     ├── AP32508-2P
+     └── AP32508-3P
+     │
+     ▼
+Source Lookup
+     │
+     ▼
+Matching Records
+     │
+     ▼
+Migration
+</code></pre>
+<p>This provides a controlled test population.</p>
+<hr />
+<h1 id="rule-processing">Rule Processing</h1>
+<p>After the requested records are retrieved, the normal transformation rules are applied.</p>
+<p>For example, consider:</p>
+<pre><code class="language-text">MBITNO = AP32508
+MMITTY = FG
+MBPUIT = 1
+</code></pre>
+<p>A PLCD Python rule may evaluate:</p>
+<pre><code class="language-python">itno = str(
+    row.get(&quot;ITNO&quot;, row.get(&quot;MBITNO&quot;, &quot;&quot;))
+).strip().upper()
+
+itty = str(
+    row.get(&quot;ITTY&quot;, row.get(&quot;MMITTY&quot;, &quot;&quot;))
+).strip().upper()
+
+puit = str(
+    row.get(&quot;PUIT&quot;, row.get(&quot;MBPUIT&quot;, &quot;&quot;))
+).strip()
+
+if itno.startswith((&quot;RS9&quot;, &quot;ZZ&quot;)):
+    return &quot;00&quot;
+
+if itty in (&quot;RM&quot;, &quot;PK&quot;) and puit == &quot;2&quot;:
+    return &quot;01&quot;
+
+if itty in (&quot;SF&quot;, &quot;FG&quot;) and puit == &quot;1&quot;:
+    return &quot;02&quot;
+
+if puit == &quot;3&quot;:
+    return &quot;05&quot;
+
+return &quot;&quot;
+</code></pre>
+<p>For:</p>
+<pre><code class="language-text">ITNO = AP32508
+ITTY = FG
+PUIT = 1
+</code></pre>
+<p>the expected result is:</p>
+<pre><code class="language-text">PLCD = 02
+</code></pre>
+<p>This makes Load by ID particularly useful when validating complex rules.</p>
+<hr />
+<h1 id="troubleshooting-with-load-by-id">Troubleshooting with Load by ID</h1>
+<p>Load by ID can help isolate transformation problems.</p>
+<p>Instead of reviewing:</p>
+<pre><code class="language-text">50,000 source records
+</code></pre>
+<p>you can isolate:</p>
+<pre><code class="language-text">1 source record
+</code></pre>
+<p>and compare:</p>
+<pre><code class="language-text">Raw Source
+    │
+    ▼
+Rule Dependencies
+    │
+    ▼
+Business Requirement
+    │
+    ▼
+Expected Result
+    │
+    ▼
+Actual Output
+</code></pre>
+<hr />
+<h1 id="example-troubleshooting-process">Example Troubleshooting Process</h1>
+<p>Suppose:</p>
+<pre><code class="language-text">ITNO = AP32508
+</code></pre>
+<p>produces an unexpected <code>PLCD</code>.</p>
+<p>First review the complete source record:</p>
+<pre><code class="language-text">MBITNO = AP32508
+MMITTY = FG
+MBPUIT = 1
+</code></pre>
+<p>Then identify the rule dependencies:</p>
+<pre><code class="language-text">PLCD
+ │
+ ├── ITNO
+ ├── ITTY
+ └── PUIT
+</code></pre>
+<p>Determine the expected result:</p>
+<pre><code class="language-text">ITTY = FG
+PUIT = 1
+
+Expected:
+
+PLCD = 02
+</code></pre>
+<p>Run only:</p>
+<pre><code class="language-text">AP32508
+</code></pre>
+<p>using Load by ID and compare the generated value.</p>
+<p>This makes it easier to determine whether the problem comes from:</p>
+<ul>
+<li>Source data</li>
+<li>Source-field naming</li>
+<li>Rule logic</li>
+<li>Rule scope</li>
+<li>Condition priority</li>
+<li>Migration configuration</li>
+</ul>
+<hr />
+<h1 id="load-by-id-and-scope">Load by ID and Scope</h1>
+<p>The selected migration scope still matters.</p>
+<p>For example:</p>
+<pre><code class="language-text">Record:
+AP32508
+
+GLOBAL
+    ↓
+PLCD = 02
+
+DIV_US
+    ↓
+PLCD = 03
+</code></pre>
+<p>The same record may produce different results when a scope-specific override exists.</p>
+<p>Always verify the selected scope when using Load by ID for rule testing.</p>
+<hr />
+<h1 id="load-by-id-vs-filter">Load by ID vs FILTER</h1>
+<p>Load by ID and FILTER rules both reduce the migration population, but they serve different purposes.</p>
+<table>
+<thead>
+<tr>
+<th>Load by ID</th>
+<th>FILTER</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>User selects specific records</td>
+<td>Business logic selects records</td>
+</tr>
+<tr>
+<td>Usually temporary</td>
+<td>Stored in Rule Configuration</td>
+</tr>
+<tr>
+<td>Useful for testing</td>
+<td>Used during normal migration</td>
+</tr>
+<tr>
+<td>Targets known IDs</td>
+<td>Evaluates conditions</td>
+</tr>
+</tbody>
+</table>
+<p>For example:</p>
+<pre><code class="language-text">Load by ID:
+
+Process AP32508 only
+</code></pre>
+<p>versus:</p>
+<pre><code class="language-text">FILTER:
+
+Process every record where MBSTAT = 20
+</code></pre>
+<hr />
+<h1 id="load-by-id-vs-standard-migration">Load by ID vs Standard Migration</h1>
+<pre><code class="language-text">STANDARD
+
+Configured Source
+      │
+      ▼
+All Applicable Records
+      │
+      ▼
+Migration
+</code></pre>
+<pre><code class="language-text">LOAD BY ID
+
+Configured Source
+      │
+      ▼
+Requested IDs
+      │
+      ▼
+Matching Records
+      │
+      ▼
+Migration
+</code></pre>
+<p>The main difference is the population being processed.</p>
+<p>The transformation rules and M3 output requirements remain the same.</p>
+<hr />
+<h1 id="validation">Validation</h1>
+<p>After running Load by ID, compare the generated output with the original source record.</p>
+<p>For each tested field:</p>
+<pre><code class="language-text">Source Value
+     +
+Business Requirement
+     +
+Transformation Rule
+     │
+     ▼
+Expected M3 Value
+     ↕
+Actual M3 Value
+</code></pre>
+<p>This is especially useful when developing new <code>PYTHON</code> rules.</p>
+<hr />
+<h1 id="recommended-testing-workflow">Recommended Testing Workflow</h1>
+<p>When developing or changing a transformation rule:</p>
+<ol>
+<li>Identify representative source records.</li>
+<li>Include normal cases.</li>
+<li>Include special cases.</li>
+<li>Include blank/null cases when applicable.</li>
+<li>Determine the expected result for each record.</li>
+<li>Run the selected records using Load by ID.</li>
+<li>Compare the generated output.</li>
+<li>Correct the rule if necessary.</li>
+<li>Repeat the test.</li>
+<li>Run a larger migration only after the targeted tests pass.</li>
+</ol>
+<p>For example:</p>
+<table>
+<thead>
+<tr>
+<th>Test Record</th>
+<th>Scenario</th>
+<th>Expected</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AP32508</td>
+<td>FG / PUIT 1</td>
+<td>PLCD 02</td>
+</tr>
+<tr>
+<td>TEST001</td>
+<td>PK / PUIT 2</td>
+<td>PLCD 01</td>
+</tr>
+<tr>
+<td>RS90001</td>
+<td>RS9 Item</td>
+<td>PLCD 00</td>
+</tr>
+<tr>
+<td>TEST003</td>
+<td>PUIT 3</td>
+<td>PLCD 05</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="important-consideration">Important Consideration</h1>
+<p>A successful Load by ID run proves that the selected records were processed successfully.</p>
+<p>It does not prove that every possible source-data scenario has been tested.</p>
+<p>Use representative records covering all important business-rule conditions before approving a transformation.</p>
+<hr />
+<h1 id="troubleshooting">Troubleshooting</h1>
+<p>If a requested record is not found, verify:</p>
+<ul>
+<li>The correct source is selected.</li>
+<li>The correct identifier field is being used.</li>
+<li>The ID exists in the source.</li>
+<li>Leading or trailing spaces are not affecting the comparison.</li>
+<li>The source value has the expected format.</li>
+<li>The database/source connection is available.</li>
+<li>The correct migration configuration is selected.</li>
+</ul>
+<p>If the record is found but produces incorrect output, review:</p>
+<ul>
+<li>Rule dependencies</li>
+<li>Source values</li>
+<li>Rule type</li>
+<li>Python condition order</li>
+<li>Selected scope</li>
+<li>Expected business requirement</li>
+</ul>
+<hr />
+<h1 id="next-step">Next Step</h1>
+<p>Continue to <strong>Batch Migration</strong> to learn how multiple migration configurations can be processed as part of a larger migration run.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

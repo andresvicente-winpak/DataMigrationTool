@@ -174,16 +174,11 @@ class MCOImporter:
             # takes precedence over the mere presence of a conversion source.
             # A lookup still has a source key, but it is a MAP rather than a
             # DIRECT copy (for example, TEPA sourced from OKTEPA).
-            usage_upper = raw_usage.upper()
-            if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
+            if 'LOOKUP' in raw_usage.upper() or raw_usage.upper() in ['MAP', 'MAPPING']:
                 r_type = 'MAP'
                 r_src = raw_src
                 r_val = raw_usage_comments
                 desc = f"Lookup Table: {raw_usage_comments}" if raw_usage_comments else "Lookup Table (mapping configuration required)"
-            elif 'CONSTANT' in usage_upper or usage_upper in ['CONST', 'FIXED']:
-                r_type = 'CONST'
-                r_val = raw_usage_comments or raw_logic
-                desc = f"Constant: {r_val}" if r_val else "Constant (value required)"
             elif raw_src:
                 r_type = 'DIRECT'; r_src = raw_src; desc = f"Mapped from {raw_src}"
             elif raw_req.startswith('1') or raw_req.startswith('Y'):
@@ -239,7 +234,7 @@ class MCOImporter:
                     # result without discarding a manually authored rule.
                     curr_type = str(row['RULE_TYPE']).upper()
                     curr_desc = str(row.get('DESCRIPTION', ''))
-                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Constant:', 'Constant (', 'Required!', 'Required Constant:', 'MCO listed'))
+                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Required!', 'Required Constant:', 'MCO listed'))
                     if curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
                         row['RULE_TYPE'] = mco_data['RULE_TYPE']
                         row['SOURCE_FIELD'] = mco_data['SOURCE_FIELD']

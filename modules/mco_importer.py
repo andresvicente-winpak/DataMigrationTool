@@ -124,7 +124,12 @@ class MCOImporter:
         cols = df_mco.columns
         
         col_target = next((c for c in cols if any(a in c for a in ['FIELD NAME', 'M3 FIELD', 'TECHNICAL NAME'])), None)
-        col_req    = next((c for c in cols if 'CUSTOMER REQUIRED' in c or 'REQUIRED' in c), None)
+        # Prefer the customer's decision over the separate M3-required flag.
+        # Both columns are present in the standard MCO layout, and the M3 flag
+        # normally appears first.
+        col_req = next((c for c in cols if 'CUSTOMER REQUIRED' in c), None)
+        if col_req is None:
+            col_req = next((c for c in cols if 'REQUIRED' in c), None)
         col_source = next((c for c in cols if 'CONVERSION SOURCE' in c or 'SOURCE' in c or 'LEGACY' in c), None)
         col_logic  = next((c for c in cols if 'TRANSFORMATION RULE' in c or 'LOGIC' in c or 'RULE' in c), None)
         col_desc   = next((c for c in cols if 'DESCRIPTION' in c), None)

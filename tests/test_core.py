@@ -148,9 +148,22 @@ def test_09_mco_checker():
 def test_10_importer_logic():
     importer = MCOImporter()
     mco_path = f"{DATA_DIR}/MCO_VALID.xlsx" 
-    pd.DataFrame({'FIELD NAME': ['ITNO'], 'SOURCE': ['MMITNO']}).to_excel(mco_path, sheet_name='Sheet1', startrow=2, index=False)
+    pd.DataFrame({
+        'FIELD NAME': ['ITNO', 'TEPA'],
+        'SOURCE': ['MMITNO', 'OKTEPA'],
+        'FIELD USAGE': ['Direct', 'Lookup Table'],
+        'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx'],
+    }).to_excel(mco_path, sheet_name='Sheet1', startrow=2, index=False)
     success = importer.run_import_headless(mco_path, "Sheet1", "IMPORTED_API", output_dir=f"{CONF_DIR}/rules")
     assert success
+    imported = pd.read_excel(f"{CONF_DIR}/rules/IMPORTED_API.xlsx", sheet_name='Rules')
+    direct_rule = imported[imported['TARGET_FIELD'] == 'ITNO'].iloc[0]
+    lookup_rule = imported[imported['TARGET_FIELD'] == 'TEPA'].iloc[0]
+    assert direct_rule['RULE_TYPE'] == 'DIRECT'
+    assert direct_rule['SOURCE_FIELD'] == 'MMITNO'
+    assert lookup_rule['RULE_TYPE'] == 'MAP'
+    assert lookup_rule['SOURCE_FIELD'] == 'OKTEPA'
+    assert lookup_rule['RULE_VALUE'] == 'CRS610-TEPA-map.xlsx'
 
 def test_11_sdt_writer():
     writer = SDTWriter(output_dir=OUT_DIR)

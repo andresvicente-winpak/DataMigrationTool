@@ -96,6 +96,26 @@ class MCOImporter:
     # CORE LOGIC
     # =========================================================================
     @staticmethod
+    def _clean_cell(value, default=''):
+        """Return a trimmed string without treating text containing 'nan' as empty."""
+        if value is None or pd.isna(value):
+            return default
+        return str(value).strip()
+
+    @staticmethod
+    def _find_column(columns, aliases, excluded_terms=()):
+        """Find the first normalized header matching an alias and no exclusions."""
+        return next(
+            (
+                column
+                for column in columns
+                if any(alias in column for alias in aliases)
+                and not any(term in column for term in excluded_terms)
+            ),
+            None,
+        )
+
+    @staticmethod
     def _classify_rule(raw_src, raw_req, raw_logic, raw_usage, raw_usage_comments):
         """Translate one MCO row into rule type, value, source, and description."""
         usage_upper = raw_usage.upper()
@@ -165,18 +185,18 @@ class MCOImporter:
         print(f"   -> Parsing MCO content...")
         cols = df_mco.columns
         
-        col_target = next((c for c in cols if any(a in c for a in ['FIELD NAME', 'M3 FIELD', 'TECHNICAL NAME'])), None)
+        col_target = self._find_column(cols, ['FIELD NAME', 'M3 FIELD', 'TECHNICAL NAME'])
         # Prefer the customer's decision over the separate M3-required flag.
         # Both columns are present in the standard MCO layout, and the M3 flag
         # normally appears first.
-        col_req = next((c for c in cols if 'CUSTOMER REQUIRED' in c), None)
+        col_req = self._find_column(cols, ['CUSTOMER REQUIRED'])
         if col_req is None:
-            col_req = next((c for c in cols if 'REQUIRED' in c), None)
-        col_source = next((c for c in cols if 'CONVERSION SOURCE' in c or 'SOURCE' in c or 'LEGACY' in c), None)
-        col_logic  = next((c for c in cols if 'TRANSFORMATION RULE' in c or 'LOGIC' in c or 'RULE' in c), None)
-        col_desc   = next((c for c in cols if 'DESCRIPTION' in c), None)
-        col_usage  = next((c for c in cols if 'FIELD USAGE' in c and 'COMMENT' not in c), None)
-        col_usage_comments = next((c for c in cols if 'FIELD USAGE' in c and 'COMMENT' in c), None)
+            col_req = self._find_column(cols, ['REQUIRED'])
+        col_source = self._find_column(cols, ['CONVERSION SOURCE', 'SOURCE', 'LEGACY'])
+        col_logic = self._find_column(cols, ['TRANSFORMATION RULE', 'LOGIC', 'RULE'])
+        col_desc = self._find_column(cols, ['DESCRIPTION'])
+        col_usage = self._find_column(cols, ['FIELD USAGE'], ['COMMENT'])
+        col_usage_comments = self._find_column(cols, ['FIELD USAGE COMMENTS'])
         
         col_type = self._find_column(cols, ['DATA TYPE', 'TYPE'])
         col_len = self._find_column(cols, ['LENGTH'])
@@ -190,7 +210,7 @@ class MCOImporter:
             if not tgt: continue
             if len(tgt) == 6: tgt = tgt[2:] 
 
-            raw_src = str(row.get(col_source, '')).strip().replace('nan', '').upper()
+            raw_src = self._clean_cell(row.get(col_source)).upper()
 
             # The conversion source is the column name in the legacy extract.
             # M3 database columns commonly include a two-character table prefix
@@ -200,15 +220,15 @@ class MCOImporter:
             # normalized to the four-character API field name; source names
             # must be preserved exactly as specified by the MCO.
 
-            raw_req = str(row.get(col_req, '0')).strip().replace('nan', '0')
-            raw_logic = str(row.get(col_logic, '')).strip().replace('nan', '')
-            raw_desc = str(row.get(col_desc, '')).strip().replace('nan', '') if col_desc else ""
-            raw_usage = str(row.get(col_usage, '')).strip().replace('nan', '') if col_usage else ""
-            raw_usage_comments = str(row.get(col_usage_comments, '')).strip().replace('nan', '') if col_usage_comments else ""
+            raw_req = self._clean_cell(row.get(col_req), default='0')
+            raw_logic = self._clean_cell(row.get(col_logic))
+            raw_desc = self._clean_cell(row.get(col_desc))
+            raw_usage = self._clean_cell(row.get(col_usage))
+            raw_usage_comments = self._clean_cell(row.get(col_usage_comments))
             
-            m3_type = str(row.get(col_type, '')).strip().replace('nan', '') if col_type else ""
-            m3_len  = str(row.get(col_len, '')).strip().replace('nan', '') if col_len else ""
-            m3_dec  = str(row.get(col_dec, '')).strip().replace('nan', '') if col_dec else ""
+            m3_type = self._clean_cell(row.get(col_type))
+            m3_len = self._clean_cell(row.get(col_len))
+            m3_dec = self._clean_cell(row.get(col_dec))
             
             # Field Usage is authoritative and is evaluated before source and
             # required-field fallbacks by the classifier.
@@ -219,32 +239,6 @@ class MCOImporter:
                 raw_usage,
                 raw_usage_comments,
             )
-            r_type, r_val, r_src, desc = 'IGNORE', '', '', 'Imported'
-            
-            # Field Usage describes how the value is obtained and therefore
-            # takes precedence over the mere presence of a conversion source.
-            # A lookup still has a source key, but it is a MAP rather than a
-            # DIRECT copy (for example, TEPA sourced from OKTEPA).
-            usage_upper = raw_usage.upper()
-            if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
-            if 'LOOKUP' in raw_usage.upper() or raw_usage.upper() in ['MAP', 'MAPPING']:
-                r_type = 'MAP'
-                r_src = raw_src
-                r_val = raw_usage_comments
-                desc = f"Lookup Table: {raw_usage_comments}" if raw_usage_comments else "Lookup Table (mapping configuration required)"
-            elif 'CONSTANT' in usage_upper or usage_upper in ['CONST', 'FIXED']:
-                r_type = 'CONST'
-                r_val = raw_usage_comments or raw_logic
-                desc = f"Constant: {r_val}" if r_val else "Constant (value required)"
-            elif raw_src:
-                r_type = 'DIRECT'; r_src = raw_src; desc = f"Mapped from {raw_src}"
-            elif raw_req.startswith('1') or raw_req.startswith('Y'):
-                if 'CONST' in raw_logic.upper() or 'FIXED' in raw_logic.upper():
-                        r_type = 'CONST'; desc = f"Required Constant: {raw_logic}"
-                else:
-                    r_type = 'TODO'; desc = f"Required! Logic: {raw_logic}"
-            else:
-                r_type = 'IGNORE'; desc = "MCO listed but not required"
             
             new_rules.append({
                 'TARGET_API': api_name, 
@@ -295,11 +289,9 @@ class MCOImporter:
                     # result without discarding a manually authored rule.
                     curr_type = str(row['RULE_TYPE']).upper()
                     curr_desc = str(row.get('DESCRIPTION', ''))
-                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Constant:', 'Constant (', 'Required!', 'Required Constant:', 'MCO listed'))
+                    auto_generated = curr_desc.startswith(self.AUTO_DESCRIPTION_PREFIXES)
                     explicit_mco_usage = bool(mco_data.get('_MCO_EXPLICIT_USAGE', False))
                     if explicit_mco_usage or curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
-                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Required!', 'Required Constant:', 'MCO listed'))
-                    if curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
                         row['RULE_TYPE'] = mco_data['RULE_TYPE']
                         row['SOURCE_FIELD'] = mco_data['SOURCE_FIELD']
                         row['RULE_VALUE'] = mco_data['RULE_VALUE']

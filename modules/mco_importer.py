@@ -120,6 +120,12 @@ class MCOImporter:
         """Translate one MCO row into rule type, value, source, and description."""
         usage_upper = raw_usage.upper()
 
+        # Field Usage is the customer's rule decision.  A blank decision must
+        # remain blank rather than being inferred from M3-required or source
+        # metadata, while an explicit Ignore must likewise take precedence.
+        if not usage_upper:
+            return '', '', '', ''
+
         # An explicit Field Usage decision must take precedence over the
         # source/required fallbacks below.  In particular, standard MCO files
         # retain the M3 "Customer Required" flag and conversion-source value

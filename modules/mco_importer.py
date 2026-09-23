@@ -1,11 +1,21 @@
 import pandas as pd
 import os
-import glob
 from colorama import Fore, Style
 import time
 from modules.audit_manager import AuditManager
 
 class MCOImporter:
+    AUTO_DESCRIPTION_PREFIXES = (
+        'Mapped from ',
+        'Lookup Table:',
+        'Lookup Table (',
+        'Constant:',
+        'Constant (',
+        'Required!',
+        'Required Constant:',
+        'MCO listed',
+    )
+
     def __init__(self, sdt_folder='config/sdt_templates'):
         self.sdt_folder = sdt_folder
 
@@ -168,16 +178,16 @@ class MCOImporter:
         col_usage  = next((c for c in cols if 'FIELD USAGE' in c and 'COMMENT' not in c), None)
         col_usage_comments = next((c for c in cols if 'FIELD USAGE' in c and 'COMMENT' in c), None)
         
-        col_type   = next((c for c in cols if 'DATA TYPE' in c or 'TYPE' in c), None)
-        col_len    = next((c for c in cols if 'LENGTH' in c), None)
-        col_dec    = next((c for c in cols if 'DECIMAL' in c), None)
+        col_type = self._find_column(cols, ['DATA TYPE', 'TYPE'])
+        col_len = self._find_column(cols, ['LENGTH'])
+        col_dec = self._find_column(cols, ['DECIMAL'])
 
         if not col_target: print(f"{Fore.RED}      CRITICAL: Could not find Target Column.{Style.RESET_ALL}"); return
 
         new_rules = []
         for _, row in df_mco.iterrows():
-            tgt = str(row.get(col_target, '')).strip().upper()
-            if not tgt or tgt == 'NAN': continue
+            tgt = self._clean_cell(row.get(col_target)).upper()
+            if not tgt: continue
             if len(tgt) == 6: tgt = tgt[2:] 
 
             raw_src = str(row.get(col_source, '')).strip().replace('nan', '').upper()

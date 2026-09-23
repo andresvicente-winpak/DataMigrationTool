@@ -209,6 +209,32 @@ class MCOImporter:
                 raw_usage,
                 raw_usage_comments,
             )
+            r_type, r_val, r_src, desc = 'IGNORE', '', '', 'Imported'
+            
+            # Field Usage describes how the value is obtained and therefore
+            # takes precedence over the mere presence of a conversion source.
+            # A lookup still has a source key, but it is a MAP rather than a
+            # DIRECT copy (for example, TEPA sourced from OKTEPA).
+            usage_upper = raw_usage.upper()
+            if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
+            if 'LOOKUP' in raw_usage.upper() or raw_usage.upper() in ['MAP', 'MAPPING']:
+                r_type = 'MAP'
+                r_src = raw_src
+                r_val = raw_usage_comments
+                desc = f"Lookup Table: {raw_usage_comments}" if raw_usage_comments else "Lookup Table (mapping configuration required)"
+            elif 'CONSTANT' in usage_upper or usage_upper in ['CONST', 'FIXED']:
+                r_type = 'CONST'
+                r_val = raw_usage_comments or raw_logic
+                desc = f"Constant: {r_val}" if r_val else "Constant (value required)"
+            elif raw_src:
+                r_type = 'DIRECT'; r_src = raw_src; desc = f"Mapped from {raw_src}"
+            elif raw_req.startswith('1') or raw_req.startswith('Y'):
+                if 'CONST' in raw_logic.upper() or 'FIXED' in raw_logic.upper():
+                        r_type = 'CONST'; desc = f"Required Constant: {raw_logic}"
+                else:
+                    r_type = 'TODO'; desc = f"Required! Logic: {raw_logic}"
+            else:
+                r_type = 'IGNORE'; desc = "MCO listed but not required"
             
             new_rules.append({
                 'TARGET_API': api_name, 
@@ -262,6 +288,8 @@ class MCOImporter:
                     auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Constant:', 'Constant (', 'Required!', 'Required Constant:', 'MCO listed'))
                     explicit_mco_usage = bool(mco_data.get('_MCO_EXPLICIT_USAGE', False))
                     if explicit_mco_usage or curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
+                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Required!', 'Required Constant:', 'MCO listed'))
+                    if curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
                         row['RULE_TYPE'] = mco_data['RULE_TYPE']
                         row['SOURCE_FIELD'] = mco_data['SOURCE_FIELD']
                         row['RULE_VALUE'] = mco_data['RULE_VALUE']

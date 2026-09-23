@@ -176,6 +176,7 @@ class MCOImporter:
             # DIRECT copy (for example, TEPA sourced from OKTEPA).
             usage_upper = raw_usage.upper()
             if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
+            if 'LOOKUP' in raw_usage.upper() or raw_usage.upper() in ['MAP', 'MAPPING']:
                 r_type = 'MAP'
                 r_src = raw_src
                 r_val = raw_usage_comments
@@ -246,6 +247,8 @@ class MCOImporter:
                     auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Constant:', 'Constant (', 'Required!', 'Required Constant:', 'MCO listed'))
                     explicit_mco_usage = bool(mco_data.get('_MCO_EXPLICIT_USAGE', False))
                     if explicit_mco_usage or curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
+                    auto_generated = curr_desc.startswith(('Mapped from ', 'Lookup Table:', 'Lookup Table (', 'Required!', 'Required Constant:', 'MCO listed'))
+                    if curr_type in ['TODO', 'IGNORE', '', 'NAN'] or auto_generated:
                         row['RULE_TYPE'] = mco_data['RULE_TYPE']
                         row['SOURCE_FIELD'] = mco_data['SOURCE_FIELD']
                         row['RULE_VALUE'] = mco_data['RULE_VALUE']

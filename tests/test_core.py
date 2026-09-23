@@ -149,6 +149,12 @@ def test_10_importer_logic():
     importer = MCOImporter()
     mco_path = f"{DATA_DIR}/MCO_VALID.xlsx" 
     pd.DataFrame({
+        'FIELD NAME': ['ITNO', 'TEPA', 'TXAP'],
+        'SOURCE': ['MMITNO', 'OKTEPA', ''],
+        'M3 REQUIRED FIELD': ['Y', 'Y', ''],
+        'CUSTOMER REQUIRED': ['1', '1', '1'],
+        'FIELD USAGE': ['Direct', 'Lookup Table', 'Constant'],
+        'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx', '1'],
         'FIELD NAME': ['ITNO', 'TEPA'],
         'SOURCE': ['MMITNO', 'OKTEPA'],
         'FIELD USAGE': ['Direct', 'Lookup Table'],
@@ -159,11 +165,27 @@ def test_10_importer_logic():
     imported = pd.read_excel(f"{CONF_DIR}/rules/IMPORTED_API.xlsx", sheet_name='Rules')
     direct_rule = imported[imported['TARGET_FIELD'] == 'ITNO'].iloc[0]
     lookup_rule = imported[imported['TARGET_FIELD'] == 'TEPA'].iloc[0]
+    constant_rule = imported[imported['TARGET_FIELD'] == 'TXAP'].iloc[0]
     assert direct_rule['RULE_TYPE'] == 'DIRECT'
     assert direct_rule['SOURCE_FIELD'] == 'MMITNO'
     assert lookup_rule['RULE_TYPE'] == 'MAP'
     assert lookup_rule['SOURCE_FIELD'] == 'OKTEPA'
     assert lookup_rule['RULE_VALUE'] == 'CRS610-TEPA-map.xlsx'
+    assert constant_rule['RULE_TYPE'] == 'CONST'
+    assert str(constant_rule['RULE_VALUE']) == '1'
+
+    # Explicit Field Usage is authoritative when refreshing an existing rule
+    # file, even if that file currently contains a strong (but wrong) type.
+    imported.loc[imported['TARGET_FIELD'] == 'TXAP', 'RULE_TYPE'] = 'DIRECT'
+    imported.loc[imported['TARGET_FIELD'] == 'TXAP', 'DESCRIPTION'] = 'Existing rule'
+    imported.to_excel(f"{CONF_DIR}/rules/IMPORTED_API.xlsx", sheet_name='Rules', index=False)
+    assert importer.run_import_headless(
+        mco_path, "Sheet1", "IMPORTED_API", output_dir=f"{CONF_DIR}/rules"
+    )
+    refreshed = pd.read_excel(f"{CONF_DIR}/rules/IMPORTED_API.xlsx", sheet_name='Rules')
+    constant_rule = refreshed[refreshed['TARGET_FIELD'] == 'TXAP'].iloc[0]
+    assert constant_rule['RULE_TYPE'] == 'CONST'
+    assert str(constant_rule['RULE_VALUE']) == '1'
 
 def test_11_sdt_writer():
     writer = SDTWriter(output_dir=OUT_DIR)

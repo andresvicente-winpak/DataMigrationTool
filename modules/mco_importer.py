@@ -120,6 +120,14 @@ class MCOImporter:
         """Translate one MCO row into rule type, value, source, and description."""
         usage_upper = raw_usage.upper()
 
+        # An explicit Field Usage decision must take precedence over the
+        # source/required fallbacks below.  In particular, standard MCO files
+        # retain the M3 "Customer Required" flag and conversion-source value
+        # even when the customer has selected Ignore.  Without this branch,
+        # those rows were incorrectly classified as DIRECT or TODO.
+        if usage_upper in ['IGNORE', 'IGNORED']:
+            return 'IGNORE', '', '', "Explicitly ignored in MCO Field Usage"
+
         if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
             description = (
                 f"Lookup Table: {raw_usage_comments}"

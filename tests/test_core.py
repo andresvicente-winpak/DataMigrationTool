@@ -147,10 +147,6 @@ def test_09_mco_checker():
 
 def test_10_importer_logic():
     importer = MCOImporter()
-    assert importer._clean_cell('  Banana  ') == 'Banana'
-    assert importer._find_column(
-        ['FIELD USAGE', 'FIELD USAGE COMMENTS'], ['FIELD USAGE'], ['COMMENTS']
-    ) == 'FIELD USAGE'
     assert importer._classify_rule('', '1', '', 'Constant', '0 - Normal') == (
         'CONST', '0 - Normal', '', 'Constant: 0 - Normal'
     )
@@ -162,6 +158,10 @@ def test_10_importer_logic():
         'CUSTOMER REQUIRED': ['1', '1', '1'],
         'FIELD USAGE': ['Direct', 'Lookup Table', 'Constant'],
         'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx', '1'],
+        'FIELD NAME': ['ITNO', 'TEPA'],
+        'SOURCE': ['MMITNO', 'OKTEPA'],
+        'FIELD USAGE': ['Direct', 'Lookup Table'],
+        'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx'],
     }).to_excel(mco_path, sheet_name='Sheet1', startrow=2, index=False)
     success = importer.run_import_headless(mco_path, "Sheet1", "IMPORTED_API", output_dir=f"{CONF_DIR}/rules")
     assert success

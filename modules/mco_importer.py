@@ -120,6 +120,15 @@ class MCOImporter:
         """Translate one MCO row into rule type, value, source, and description."""
         usage_upper = raw_usage.upper()
 
+        # Field Usage is the customer's rule decision.  A blank decision must
+        # remain blank rather than being inferred from M3-required or source
+        # metadata, while an explicit Ignore must likewise take precedence.
+        if not usage_upper:
+            return '', '', '', ''
+
+        if usage_upper in ['IGNORE', 'IGNORED']:
+            return 'IGNORE', '', '', "Explicitly ignored in MCO Field Usage"
+
         if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
             description = (
                 f"Lookup Table: {raw_usage_comments}"

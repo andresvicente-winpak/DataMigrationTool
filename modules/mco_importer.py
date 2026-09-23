@@ -116,7 +116,14 @@ class MCOImporter:
         )
 
     @staticmethod
-    def _classify_rule(raw_src, raw_req, raw_logic, raw_usage, raw_usage_comments):
+    def _classify_rule(
+        raw_src,
+        raw_req,
+        raw_logic,
+        raw_usage,
+        raw_usage_comments,
+        raw_target='',
+    ):
         """Translate one MCO row into rule type, value, source, and description."""
         usage_upper = raw_usage.upper()
 
@@ -150,6 +157,17 @@ class MCOImporter:
                 else "Constant (value required)"
             )
             return 'CONST', rule_value, '', description
+
+        if usage_upper in ['DIRECT', 'DIRECT MAP', 'DIRECT MAPPING']:
+            # In the MCO, "Direct" means that the source field has the same
+            # technical name as the listed M3 field.  Authors therefore often
+            # leave Data Conversion Source Field blank (for example OKACRF).
+            # Preserve the full technical name as the source; only the target
+            # API field is shortened later in the import.
+            source_field = raw_src or raw_target
+            if source_field:
+                return 'DIRECT', '', source_field, f"Mapped from {source_field}"
+            return 'TODO', '', '', "Direct mapping is missing a source field"
 
         if raw_src:
             return 'DIRECT', '', raw_src, f"Mapped from {raw_src}"
@@ -252,6 +270,7 @@ class MCOImporter:
                 raw_logic,
                 raw_usage,
                 raw_usage_comments,
+                raw_target=self._clean_cell(row.get(col_target)).upper(),
             )
             
             new_rules.append({

@@ -163,14 +163,17 @@ def test_10_importer_logic():
     assert importer._classify_rule('OKCFC1', '1', 'Required logic', '', '') == (
         '', '', '', ''
     )
+    assert importer._classify_rule('', '1', '', 'Direct', '', 'OKACRF') == (
+        'DIRECT', '', 'OKACRF', 'Mapped from OKACRF'
+    )
     mco_path = f"{DATA_DIR}/MCO_VALID.xlsx" 
     pd.DataFrame({
-        'FIELD NAME': ['ITNO', 'TEPA', 'TXAP'],
-        'SOURCE': ['MMITNO', 'OKTEPA', ''],
-        'M3 REQUIRED FIELD': ['Y', 'Y', ''],
-        'CUSTOMER REQUIRED': ['1', '1', '1'],
-        'FIELD USAGE': ['Direct', 'Lookup Table', 'Constant'],
-        'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx', '1'],
+        'FIELD NAME': ['ITNO', 'TEPA', 'TXAP', 'OKACRF'],
+        'SOURCE': ['MMITNO', 'OKTEPA', '', ''],
+        'M3 REQUIRED FIELD': ['Y', 'Y', '', ''],
+        'CUSTOMER REQUIRED': ['1', '1', '1', '1'],
+        'FIELD USAGE': ['Direct', 'Lookup Table', 'Constant', 'Direct'],
+        'FIELD USAGE COMMENTS': ['', 'CRS610-TEPA-map.xlsx', '1', ''],
     }).to_excel(mco_path, sheet_name='Sheet1', startrow=2, index=False)
     success = importer.run_import_headless(mco_path, "Sheet1", "IMPORTED_API", output_dir=f"{CONF_DIR}/rules")
     assert success
@@ -178,6 +181,7 @@ def test_10_importer_logic():
     direct_rule = imported[imported['TARGET_FIELD'] == 'ITNO'].iloc[0]
     lookup_rule = imported[imported['TARGET_FIELD'] == 'TEPA'].iloc[0]
     constant_rule = imported[imported['TARGET_FIELD'] == 'TXAP'].iloc[0]
+    inferred_direct_rule = imported[imported['TARGET_FIELD'] == 'ACRF'].iloc[0]
     assert direct_rule['RULE_TYPE'] == 'DIRECT'
     assert direct_rule['SOURCE_FIELD'] == 'MMITNO'
     assert lookup_rule['RULE_TYPE'] == 'MAP'
@@ -185,6 +189,8 @@ def test_10_importer_logic():
     assert lookup_rule['RULE_VALUE'] == 'CRS610-TEPA-map.xlsx'
     assert constant_rule['RULE_TYPE'] == 'CONST'
     assert str(constant_rule['RULE_VALUE']) == '1'
+    assert inferred_direct_rule['RULE_TYPE'] == 'DIRECT'
+    assert inferred_direct_rule['SOURCE_FIELD'] == 'OKACRF'
 
     # Explicit Field Usage is authoritative when refreshing an existing rule
     # file, even if that file currently contains a strong (but wrong) type.

@@ -147,6 +147,9 @@ def test_09_mco_checker():
 
 def test_10_importer_logic():
     importer = MCOImporter()
+    assert importer._classify_rule('', '1', '', 'Constant', '0 - Normal') == (
+        'CONST', '0 - Normal', '', 'Constant: 0 - Normal'
+    )
     mco_path = f"{DATA_DIR}/MCO_VALID.xlsx" 
     pd.DataFrame({
         'FIELD NAME': ['ITNO', 'TEPA', 'TXAP'],

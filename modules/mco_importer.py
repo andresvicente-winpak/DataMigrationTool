@@ -85,6 +85,38 @@ class MCOImporter:
     # =========================================================================
     # CORE LOGIC
     # =========================================================================
+    @staticmethod
+    def _classify_rule(raw_src, raw_req, raw_logic, raw_usage, raw_usage_comments):
+        """Translate one MCO row into rule type, value, source, and description."""
+        usage_upper = raw_usage.upper()
+
+        if 'LOOKUP' in usage_upper or usage_upper in ['MAP', 'MAPPING']:
+            description = (
+                f"Lookup Table: {raw_usage_comments}"
+                if raw_usage_comments
+                else "Lookup Table (mapping configuration required)"
+            )
+            return 'MAP', raw_usage_comments, raw_src, description
+
+        if 'CONSTANT' in usage_upper or usage_upper in ['CONST', 'FIXED']:
+            rule_value = raw_usage_comments or raw_logic
+            description = (
+                f"Constant: {rule_value}"
+                if rule_value
+                else "Constant (value required)"
+            )
+            return 'CONST', rule_value, '', description
+
+        if raw_src:
+            return 'DIRECT', '', raw_src, f"Mapped from {raw_src}"
+
+        if raw_req.startswith('1') or raw_req.startswith('Y'):
+            if 'CONST' in raw_logic.upper() or 'FIXED' in raw_logic.upper():
+                return 'CONST', raw_logic, '', f"Required Constant: {raw_logic}"
+            return 'TODO', '', '', f"Required! Logic: {raw_logic}"
+
+        return 'IGNORE', '', '', "MCO listed but not required"
+
     def _find_header_row(self, file_path, sheet_name):
         df_raw = pd.read_excel(file_path, sheet_name=sheet_name, header=None, nrows=15)
         header_idx = -1
@@ -168,6 +200,15 @@ class MCOImporter:
             m3_len  = str(row.get(col_len, '')).strip().replace('nan', '') if col_len else ""
             m3_dec  = str(row.get(col_dec, '')).strip().replace('nan', '') if col_dec else ""
             
+            # Field Usage is authoritative and is evaluated before source and
+            # required-field fallbacks by the classifier.
+            r_type, r_val, r_src, desc = self._classify_rule(
+                raw_src,
+                raw_req,
+                raw_logic,
+                raw_usage,
+                raw_usage_comments,
+            )
             r_type, r_val, r_src, desc = 'IGNORE', '', '', 'Imported'
             
             # Field Usage describes how the value is obtained and therefore
